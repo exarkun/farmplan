@@ -10,17 +10,20 @@
  * Ask Morgan if we can borrow their truck for the week (JERICHO)
  * Check to make sure plums(/etc) are the same as apples for amendments (JP)
  * Learn how fungus works (JERICHO)
- * Ask where it's okay to put rootstock (JP)
+ * [DONE] Ask where it's okay to put rootstock (JP)
+   * West side of garden
  * Check our rootstock to see if it is alive (JERICHO)
  * Ask people about bringing food (JERICHO)
   * jim/joan
   * pat/robin
- * Order http://www.amazon.com/Empire-Level-78-007-Stake-Flags/dp/B001DZD9YA (JP)
+ * [PENDING] Order http://www.amazon.com/Empire-Level-78-007-Stake-Flags/dp/B001DZD9YA (JP)
  * Verify lopper suitability (JP)
+  * Maybe, maybe not.  Check it out on Tuesday, maybe rent one.
  * Learn how to graft / what tools needed (JERICHO)
  * Find where to get a mattock (not an adze) (JERICHO)
  * Send reminder to diggers, plus extra details (JERICHO)
- * Battery operated night light for cabin in case people sleep upstairs (JP)
+ * [PENDING] Battery operated night light for cabin in case people sleep upstairs (JP)
+   * And batteries for it
  * Investigate temporary fence options? (JP)
  *Research blueberry transplanting
 
@@ -55,6 +58,7 @@
  *Pick up truck (and chairs?) from Morgan
  * Shopping
   * Porcupine-away
+    * Order from amazon?  [PENDING]
   * Cleaning supplies
    * Gloves
    * Soap or whatever 
