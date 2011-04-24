@@ -3,12 +3,42 @@
   * Determine treatments for each tree
    * Half dip, half gravel, half woodchips, etc
   * Create assignment sheets explaining each tree's planting process to be handed out to people
-
  * Call Agway about gravel/landscape fabric (JERICHO)
   * ~100 pounds per tree
- * Get my driver's license? (JP)
+ * [FAIL] Get my driver's license? (JP)
  * Ask Morgan if we can borrow their truck for the week (JERICHO)
- * Check to make sure plums(/etc) are the same as apples for amendments (JP)
+ * [DONE] Check to make sure plums/pears/cherries/walnuts/kiwi are the same as apples for amendments (JP)
+  * Pears (Planting is "exactly the same as planting an apple tree")
+   * 20' - 25' separation
+   * Soak roots in water 30 - 60 minutes before setting in the ground
+   * Hole large enough for roots to spread naturally
+   * Soil worked to eliminate air pockets
+   * No depression after planting
+   * Water thoroughly, check for air pockets
+   * Prune at planting time
+   * Prune end of this growing season
+  * Plums
+    * 5.5 - 6.5 pH
+    * Well drained
+  * Cherries
+    * 6.2 - 6.8 pH; 6.0 - 6.8 pH
+    * Well drained
+    * 600 cold time hours
+    * Leave graft above ground by 1.5" - 2"
+    * 15' - 25' apart
+    * Full sun
+    * Water thoroughly once a week
+  * Walnuts
+    * 6.5 - 7.5 pH
+    * Water thoroughly once a week
+    * Full sun
+    * 70' tall
+  * Kiwis
+    * 5.0 - 6.5 pH
+    * Lots of water
+    * well drained soil
+    * Lots of nitrogen once producing
+    * Pests are cats, deer, gophers
  * Learn how fungus works (JERICHO)
  * [DONE] Ask where it's okay to put rootstock (JP)
    * West side of garden
@@ -18,7 +48,7 @@
   * pat/robin
  * [DONE] Order http://www.amazon.com/Empire-Level-78-007-Stake-Flags/dp/B001DZD9YA (JP)
   * Delivery Apr 21 - 23
- * Verify lopper suitability (JP)
+ * [DONE] Verify lopper suitability (JP)
   * Maybe, maybe not.  Check it out on Tuesday, maybe rent one.
  * Learn how to graft / what tools needed (JERICHO)
  * Find where to get a mattock (not an adze) (JERICHO)
@@ -26,9 +56,10 @@
  * [DONE] Battery operated night light for cabin in case people sleep upstairs (JP)
    * And batteries for it
    * Delivery Apr 21 - 23
- * Investigate temporary fence options? (JP)
+ * [DONE] Investigate temporary fence options? (JP)
    * Critter Repellent Deer Away / Coyote urine
    * Ordered, Delivery Apr 21 - Apr 23
+   * Real fencing in the fall
  *Research blueberry transplanting
 
 * Go to Maine - Tuesday, April 26th
