@@ -1,8 +1,45 @@
 * Before going to Maine
  * Map out precise planting locations (JP)
   * Determine treatments for each tree
-   * Half dip, half gravel, half woodchips, etc
+   * Half dip / half none
+     * dip: 2 - 3, 8 - 11, 16 - 19; 21+
+   * half gravel / half woodchips
+     * gravel: 1 - 4, 7 - 8, 10, 14 - 16; 21 - 25
+     * woodchips: 5 - 6, 9, 11 - 13, 17 - 20; 26; walnuts
+
+  * Orthogonally:
+    * 1:  Honey crab              gravel
+    * 2:  Wolf River        dip   gravel
+    * 3:  Wealthy           dip   gravel
+    * 4:  Red flesh crab          gravel
+    * 5:  Wolf River              woodchips
+    * 6:  Wealthy                 woodchips
+    * 7:  Honeycrisp              gravel
+    * 8:  Keepsake          dip   gravel
+    * 9:  Red flesh crab    dip   woodchips
+    * 10: Mantet            dip   gravel
+    * 11: Honeycrisp        dip   woodchips
+    * 12: Keepsake                woodchips
+    * 13: Mantet                  woodchips
+    * 14: Dutchess                gravel
+    * 15: Cox's                   gravel
+    * 16: Milden            dip   gravel
+    * 17: Honey crab        dip   woodchips
+    * 18: Dutchess          dip   woodchips
+    * 19: Cox's             dip   woodchips
+    * 20: Milden                  woodchips
+
+    * 21: Cherry            dip   gravel
+    * 22: Cherry            dip   gravel
+    * 23: Cherry            dip   gravel
+    * 24: Pear              dip   gravel
+    * 25: Pear              dip   gravel
+    * 26: Plum              dip   woodchips
+
   * Create assignment sheets explaining each tree's planting process to be handed out to people
+
+
+
  * Call Agway about gravel/landscape fabric (JERICHO)
   * ~100 pounds per tree
  * [FAIL] Get my driver's license? (JP)
