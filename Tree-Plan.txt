@@ -128,30 +128,28 @@
      * Cooler(s)
 
 * Tuesday in Maine
- *Pick up truck (and chairs?) from Morgan
+ * [DONE] Pick up truck (and chairs?) from Morgan
  * Shopping
   * [DONE] Porcupine-away
     * Order from amazon
     * Delivery Apr 21 - 23
-  * Cleaning supplies
+  * [CANCEL] Cleaning supplies
    * Gloves
-   * Soap or whatever 
-  * Pick up gravel, landscape fabric
- * Fire permit
- * Spread porcupine-away
- * Bushhog (probably not!) / mow (maybe)
- * Till area for rootstock in garden
- *Move generator
+   * Soap or whatever
+  * [DONE] Pick up gravel, landscape fabric
+ * [DONE[ Spread porcupine-away
+ * [DONE] Move generator
 
 * Wednesday
- * Clean cabin so people can sleep in it (be done by lunch time)
+ * Cut material for wood chips
  * Mark tree locations (SUN SETS AT 7:35 PM)
   * With flags
   * Blueberries?  Obliterate. :(
+ * Spread deer shake-away (not on tree spots)
 
 * Thursday
- * Pick up mulcher
- * Chip wood for mulch
+ * Clean cabin so people can sleep in it (be done by lunch time)
+ * Fire permit
  * Food shopping
   * Condiments
   * Chicken, marinade stuff
@@ -160,10 +158,12 @@
   * Ice cream
   * Bagels
   * Cream cheese
-  *Coffee/Tea
- * Chip more wood for mulch
+  * Coffee/Tea
 
 * Friday Morning
+ * Pick up mulcher
+ * Chip wood for mulch
+ * Chip more wood for mulch
  * Jim and Joan will arrive with trees in the early afternoon
   * Probably leave trees in van until planting time
   * With soda and some food too probably
@@ -176,6 +176,8 @@
   * coop and costco food
    * hotdogs, hamburgers, soda, juice
    * buns
+ * Bushhog (probably not!) / mow (maybe)
+ * Till area for rootstock in garden
 
  * Practice planting 1 apple tree
   * take notes
