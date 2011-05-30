@@ -1,27 +1,102 @@
 * Before going to Maine
  * Map out precise planting locations (JP)
   * Determine treatments for each tree
-   * Half dip, half gravel, half woodchips, etc
+   * Half dip / half none
+     * dip: 2 - 3, 8 - 11, 16 - 19; 21+
+   * half gravel / half woodchips
+     * gravel: 1 - 4, 7 - 8, 10, 14 - 16; 21 - 25
+     * woodchips: 5 - 6, 9, 11 - 13, 17 - 20; 26; walnuts
+
+  * Orthogonally:
+    * 1:  Honey crab              gravel
+    * 2:  Wolf River        dip   gravel
+    * 3:  Wealthy           dip   gravel
+    * 4:  Red flesh crab          gravel
+    * 5:  Wolf River              woodchips
+    * 6:  Wealthy                 woodchips
+    * 7:  Honeycrisp              gravel
+    * 8:  Keepsake          dip   gravel
+    * 9:  Red flesh crab    dip   woodchips
+    * 10: Mantet            dip   gravel
+    * 11: Honeycrisp        dip   woodchips
+    * 12: Keepsake                woodchips
+    * 13: Mantet                  woodchips
+    * 14: Dutchess                gravel
+    * 15: Cox's                   gravel
+    * 16: Milden            dip   gravel
+    * 17: Honey crab        dip   woodchips
+    * 18: Dutchess          dip   woodchips
+    * 19: Cox's             dip   woodchips
+    * 20: Milden                  woodchips
+
+    * 21: Cherry            dip   gravel
+    * 22: Cherry            dip   gravel
+    * 23: Cherry            dip   gravel
+    * 24: Pear              dip   gravel
+    * 25: Pear              dip   gravel
+    * 26: Plum              dip   woodchips
+
   * Create assignment sheets explaining each tree's planting process to be handed out to people
+
+
 
  * Call Agway about gravel/landscape fabric (JERICHO)
   * ~100 pounds per tree
- * Get my driver's license? (JP)
+ * [FAIL] Get my driver's license? (JP)
  * Ask Morgan if we can borrow their truck for the week (JERICHO)
- * Check to make sure plums(/etc) are the same as apples for amendments (JP)
+ * [DONE] Check to make sure plums/pears/cherries/walnuts/kiwi are the same as apples for amendments (JP)
+  * Pears (Planting is "exactly the same as planting an apple tree")
+   * 20' - 25' separation
+   * Soak roots in water 30 - 60 minutes before setting in the ground
+   * Hole large enough for roots to spread naturally
+   * Soil worked to eliminate air pockets
+   * No depression after planting
+   * Water thoroughly, check for air pockets
+   * Prune at planting time
+   * Prune end of this growing season
+  * Plums
+    * 5.5 - 6.5 pH
+    * Well drained
+  * Cherries
+    * 6.2 - 6.8 pH; 6.0 - 6.8 pH
+    * Well drained
+    * 600 cold time hours
+    * Leave graft above ground by 1.5" - 2"
+    * 15' - 25' apart
+    * Full sun
+    * Water thoroughly once a week
+  * Walnuts
+    * 6.5 - 7.5 pH
+    * Water thoroughly once a week
+    * Full sun
+    * 70' tall
+  * Kiwis
+    * 5.0 - 6.5 pH
+    * Lots of water
+    * well drained soil
+    * Lots of nitrogen once producing
+    * Pests are cats, deer, gophers
  * Learn how fungus works (JERICHO)
- * Ask where it's okay to put rootstock (JP)
+ * [DONE] Ask where it's okay to put rootstock (JP)
+   * West side of garden
  * Check our rootstock to see if it is alive (JERICHO)
  * Ask people about bringing food (JERICHO)
   * jim/joan
   * pat/robin
- * Order http://www.amazon.com/Empire-Level-78-007-Stake-Flags/dp/B001DZD9YA (JP)
- * Verify lopper suitability (JP)
+ * [DONE] Order http://www.amazon.com/Empire-Level-78-007-Stake-Flags/dp/B001DZD9YA (JP)
+  * Delivery Apr 21 - 23
+ * [DONE] Verify lopper suitability (JP)
+  * Maybe, maybe not.  Check it out on Tuesday, maybe rent one.
  * Learn how to graft / what tools needed (JERICHO)
  * Find where to get a mattock (not an adze) (JERICHO)
  * Send reminder to diggers, plus extra details (JERICHO)
- * Battery operated night light for cabin in case people sleep upstairs (JP)
- * Investigate temporary fence options? (JP)
+ * [DONE] Battery operated night light for cabin in case people sleep upstairs (JP)
+   * And batteries for it
+   * Delivery Apr 21 - 23
+ * [DONE] Investigate temporary fence options? (JP)
+   * Critter Repellent Deer Away / Coyote urine
+   * Ordered, Delivery Apr 21 - Apr 23
+   * Real fencing in the fall
  *Research blueberry transplanting
 
 * Go to Maine - Tuesday, April 26th
@@ -53,28 +128,28 @@
      * Cooler(s)
 
 * Tuesday in Maine
- *Pick up truck (and chairs?) from Morgan
+ * [DONE] Pick up truck (and chairs?) from Morgan
  * Shopping
-  * Porcupine-away
-  * Cleaning supplies
+  * [DONE] Porcupine-away
+    * Order from amazon
+    * Delivery Apr 21 - 23
+  * [CANCEL] Cleaning supplies
    * Gloves
-   * Soap or whatever 
-  * Pick up gravel, landscape fabric
- * Fire permit
- * Spread porcupine-away
- * Bushhog (probably not!) / mow (maybe)
- * Till area for rootstock in garden
- *Move generator
+   * Soap or whatever
+  * [DONE] Pick up gravel, landscape fabric
+ * [DONE[ Spread porcupine-away
+ * [DONE] Move generator
 
 * Wednesday
- * Clean cabin so people can sleep in it (be done by lunch time)
+ * Cut material for wood chips
  * Mark tree locations (SUN SETS AT 7:35 PM)
   * With flags
   * Blueberries?  Obliterate. :(
+ * Spread deer shake-away (not on tree spots)
 
 * Thursday
- * Pick up mulcher
- * Chip wood for mulch
+ * Clean cabin so people can sleep in it (be done by lunch time)
+ * Fire permit
  * Food shopping
   * Condiments
   * Chicken, marinade stuff
@@ -83,10 +158,12 @@
   * Ice cream
   * Bagels
   * Cream cheese
-  *Coffee/Tea
- * Chip more wood for mulch
+  * Coffee/Tea
 
 * Friday Morning
+ * Pick up mulcher
+ * Chip wood for mulch
+ * Chip more wood for mulch
  * Jim and Joan will arrive with trees in the early afternoon
   * Probably leave trees in van until planting time
   * With soda and some food too probably
@@ -99,6 +176,8 @@
   * coop and costco food
    * hotdogs, hamburgers, soda, juice
    * buns
+ * Bushhog (probably not!) / mow (maybe)
+ * Till area for rootstock in garden
 
  * Practice planting 1 apple tree
   * take notes
