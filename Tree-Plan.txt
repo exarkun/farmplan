@@ -102,18 +102,18 @@
 * Go to Maine - Tuesday, April 26th
    * Bring:
    * Us
-     * Grafting equipment
-          * Knifes
-     	  * Alcohol
-     * Mychorizeal dip - small box upstairs
-     * Two boxes of stuff from downstairs
-     * Grill
+     * Grafting equipment [Y]
+          * Knifes [Y]
+     	  * Alcohol [Y]
+     * Mychorizeal dip - small box upstairs [Y]
+     * Two boxes of stuff from downstairs [ALREADY THERE]
+     * Grill [Y]
      *T-shirts
-     *Chairs
-     *coffee maker
+     *Chairs [Y]
+     *coffee maker [Y]
      * From farm
           * Canopy tent against rain
-     	  * Shovels
+     	  * Shovels [Y]
 	  * 5 gallon buckets
 	  * half pickle barrels
 	  * Coffee cans? (Maybe Jim and Joan have some - or yogurt containers)
@@ -121,11 +121,11 @@
 	  *Loppers
 	  *Work gloves
 	
-     * Sleeping bags
-     * Tent for sleeping in
-     * Camping pads/mats
+     * Sleeping bags [Y]
+     * Tent for sleeping in [Y]
+     * Camping pads/mats [Y]
      * PILLOWS
-     * Cooler(s)
+     * Cooler(s) [Y]
 
 * Tuesday in Maine
  * [DONE] Pick up truck (and chairs?) from Morgan
