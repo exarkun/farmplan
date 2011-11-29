@@ -1,27 +1,27 @@
-Type,Variety,Greenhouse (days),Outside,Maturity (days),End of season,seeds/packet,row feet/packet,Seeds/oz,$$/packet,$$/row ft (packet),$$/M,$$/oz,$$/row ft (M),ft/oz,$$/row ft (oz),$$/mini,Seeds/mini,row feet/mini,Favored,Harvest Duration,Notes
-Carrots,Mokum,0,04/14/11,54,10/15/11,750,25,,2.95,0.118,1.35,,0.0405,,,,,,YES,3 weeks,Early carrot
-Carrots,Nelson,0,04/14/11,56,10/15/11,750,25,,2.95,0.118,1.39,,0.0417,,,,,,YES,3 weeks,Early carrot
-Carrots,Bolero,0,04/14/11,75,10/15/11,750,25,,2.95,0.118,1.25,,0.0375,,,,,,YES,3 weeks,Storage carrot
-Beets,Merlin,35,04/14/11,48,10/15/11,385,30,,2.95,0.0983333333,2.51,,0.0322116667,,,,,,,2 weeks,
-Beets,Touchstone,35,04/14/11,55,10/15/11,385,30,2200,2.95,0.0983333333,,14.9,0,150,0.0993333333,,,,,2 weeks,
-Eating Cucumbers,Olympian,28,06/01/11,52,09/01/11,55,9,1100,2.95,0.3277777778,,,0,,,,,,,2 weeks,Fresh eating
-Pickling Cucumbers,Alibi,28,06/01/11,49,09/01/11,55,9,1100,2.95,0.3277777778,12,,0.0733333333,175,,,,,,2 weeks,Sold 55/packet or by 500 seeds
+Type,Variety,Greenhouse (days),Outside,Maturity (days),End of season,seeds/packet,row feet/packet,Seeds/oz,$$/packet,$$/row ft (packet),$$/M,$$/oz,$$/row ft (M),ft/oz,$$/row ft (oz),$$/mini,Seeds/mini,row feet/mini,Favored,Harvest Duration (Days),Notes
+Carrots,Mokum,0,04/14/11,54,10/15/11,750,25,,2.95,0.118,1.35,,0.0405,,,,,,YES,21,Early carrot
+Carrots,Nelson,0,04/14/11,56,10/15/11,750,25,,2.95,0.118,1.39,,0.0417,,,,,,YES,21,Early carrot
+Carrots,Bolero,0,04/14/11,75,10/15/11,750,25,,2.95,0.118,1.25,,0.0375,,,,,,YES,21,Storage carrot
+Beets,Merlin,35,04/14/11,48,10/15/11,385,30,,2.95,0.0983333333,2.51,,0.0322116667,,,,,,,14,
+Beets,Touchstone,35,04/14/11,55,10/15/11,385,30,2200,2.95,0.0983333333,,14.9,0,150,0.0993333333,,,,,14,
+Eating Cucumbers,Olympian,28,06/01/11,52,09/01/11,55,9,1100,2.95,0.3277777778,,,0,,,,,,,14,Fresh eating
+Pickling Cucumbers,Alibi,28,06/01/11,49,09/01/11,55,9,1100,2.95,0.3277777778,12,,0.0733333333,175,,,,,,14,Sold 55/packet or by 500 seeds
 Sweet Potatoes,Beauregard,0,06/24/11,90,09/24/11,,,,,,,,,,,,,,,,"Sold by 50 or 100, get 100; $29.85; $0.36/ft"
-Onions,Patterson,45,04/14/11,60,09/15/11,460,230,,2.95,0.012826087,,,,,,,,,,3 weeks,Storage/fresh onion
-Onions,Redwing OG,45,04/14/11,73,09/15/11,460,230,,6.25,0.027173913,,,,,,,,,,3 weeks,Storage/fresh onion
+Onions,Patterson,45,04/14/11,60,09/15/11,460,230,,2.95,0.012826087,,,,,,,,,,21,Storage/fresh onion
+Onions,Redwing OG,45,04/14/11,73,09/15/11,460,230,,6.25,0.027173913,,,,,,,,,,21,Storage/fresh onion
 Onions,Redwing non-OG,,,,,,,,3.95,,,,,,,,,,,,
-Peas,Sugar sprint,0,04/14/11,58,07/1/11,375,46,,,,,,,,,,,,,2 weeks,Maybe plant earlier
-Broccoli,Diplomat,42,08/01/11,26,09/15/11,100,150,,2.95,0.0196666667,,,,,,,,,,2 weeks,
-Cauliflower,Snow crown,35,08/01/11,25,09/15/11,85,63,,2.95,0.0468253968,,,,,,,,,,2 weeks,
-Kale,Tuscano,42,08/01/11,23,10/15/11,240,20,,2.95,0.1475,,,,,,,,,,12 weeks,
+Peas,Sugar sprint,0,04/14/11,58,07/1/11,375,46,,,,,,,,,,,,,14,Maybe plant earlier
+Broccoli,Diplomat,42,08/01/11,26,09/15/11,100,150,,2.95,0.0196666667,,,,,,,,,,14,
+Cauliflower,Snow crown,35,08/01/11,25,09/15/11,85,63,,2.95,0.0468253968,,,,,,,,,,14,
+Kale,Tuscano,42,08/01/11,23,10/15/11,240,20,,2.95,0.1475,,,,,,,,,,84,
 Cabbage,Storage #4,42,08/01/11,53,10/15/11,100,150,,2.95,0.0196666667,,,,,,,,,,,
 Brussels Sprouts,Diablo,42,08/01/11,68,10/15/11,80,90,,2.95,0.0327777778,,,,,,,,,,,
 Salad Turnips,Hakurei,0,04/14/11,38,09/15/11,400,10,,2.95,0.295,,,,,,,,,,,
 Storage Turnips,Purple top,0,04/14/11,50,09/15/11,400,10,,2.95,0.295,,,,,,,,,,,
 Radish,Red meat,0,04/14/11,50,09/15/11,265,7,,2.95,0.4214285714,,,,,,,,,,,Expensive – plant extra to sell?
-Tomatoes,Juliet,42,06/01/11,18,09/01/11,250,375,,12,0.032,,,,,,,,,,3 weeks,Sauce tomato
-Tomatoes,Taxi,42,06/01/11,22,09/01/11,,,,,,,,,,,2.95,40,60,,3 weeks,
-Tomatoes,Black Prince,42,06/01/11,32,09/01/11,,,,,,,,,,,2.95,40,60,,3 weeks,
+Tomatoes,Juliet,42,06/01/11,18,09/01/11,250,375,,12,0.032,,,,,,,,,,21,Sauce tomato
+Tomatoes,Taxi,42,06/01/11,22,09/01/11,,,,,,,,,,,2.95,40,60,,21,
+Tomatoes,Black Prince,42,06/01/11,32,09/01/11,,,,,,,,,,,2.95,40,60,,21,
 Sweet Peppers,,,,,,,,,,,,,,,,,,,,,
 Eggplant,,,,,,,,,,,,,,,,,,,,,
 Spinach,,,,,,,,,,,,,,,,,,,,,
