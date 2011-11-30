@@ -1,5 +1,7 @@
 from csv import reader
 from sys import argv
+from math import ceil
+from itertools import groupby
 
 from twisted.python.filepath import FilePath
 
@@ -11,7 +13,7 @@ class Crop(record(
         'fresh_eating_lbs fresh_eating_weeks '
         'storage_eating_lbs storage_eating_weeks '
         'variety harvest_weeks row_feet_per_oz_seed '
-        'yield_lbs_per_bed_foot bed_feet')):
+        'rows_per_bed yield_lbs_per_bed_foot _bed_feet')):
     """
     @ivar name: The general name of this crop (eg carrots, beets)
 
@@ -30,11 +32,21 @@ class Crop(record(
 
     @ivar row_feet_per_oz_seed: Bogus, ignore
 
+    @ivar rows_per_bed: The number of rows of this seed sewn per bed.  XXX
+        Missing from the underlying data, add it.
+
     @ivar yield_lbs_per_bed_foot: Number of pounds of this crop produced per bed
         foot (three foot wide bed) planted.
 
-    @ivar bed_feet: Number of bed feet to plant in this crop.
+    @ivar _bed_feet: Number of bed feet to plant in this crop.
     """
+    @property
+    def bed_feet(self):
+        if self._bed_feet is None:
+            return self.total_yield / self.yield_lbs_per_bed_foot
+        return self._bed_feet
+
+
     @property
     def fresh_yield(self):
         return self.fresh_eating_weeks * self.fresh_eating_lbs
@@ -48,6 +60,11 @@ class Crop(record(
     @property
     def total_yield(self):
         return self.fresh_yield + self.storage_yield
+
+
+
+class Price(record('kind dollars_per_row_foot row_foot_increment')):
+    pass
 
 
 
@@ -125,6 +142,62 @@ class Seed(record(
 
     @ivar notes: Freeform text.
     """
+    @property
+    def row_foot_per_thousand(self):
+        # Assume that seeds from a packet plant the same as seeds from an M -
+        # also assume that seeds are available by the M, which not all are.
+        # XXX Add availability by the M to the underlying data.
+        if self.seeds_per_packet is not None and self.row_foot_per_packet is not None:
+            row_foot_per_seed = self.row_foot_per_packet / self.seeds_per_packet
+            return row_foot_per_seed * 1000
+        return None
+
+
+    @property
+    def price_per_mini(self):
+        if self.dollars_per_mini:
+            return Price(
+                kind='mini',
+                dollars_per_row_foot=self.dollars_per_mini / self.row_foot_per_mini,
+                row_foot_increment=self.row_foot_per_mini)
+        return None
+
+
+    @property
+    def price_per_packet(self):
+        if self.dollars_per_packet:
+            return Price(
+                kind='packet',
+                dollars_per_row_foot=self.dollars_per_row_foot_packet,
+                row_foot_increment=self.row_foot_per_packet)
+        return None
+
+
+    @property
+    def price_per_thousand(self):
+        if self.dollars_per_thousand:
+            return Price(
+                kind='thousand',
+                dollars_per_row_foot=self.dollars_per_row_foot_thousand,
+                row_foot_increment=self.row_foot_per_thousand)
+        return None
+
+
+    @property
+    def price_per_ounce(self):
+        if self.dollars_per_oz:
+            return Price(
+                kind='ounce',
+                dollars_per_row_foot=self.dollars_per_row_foot_oz,
+                row_foot_increment=self.row_foot_per_oz)
+        return None
+
+
+    @property
+    def prices(self):
+        return filter(None, [
+            self.price_per_mini, self.price_per_packet, self.price_per_thousand,
+            self.price_per_ounce])
 
 
 
@@ -133,28 +206,28 @@ def load_crops(path):
     # Ignore the first two rows
     data.next()
     data.next()
-    crops = []
+    crops = {}
     for row in data:
-        crops.append(
-            Crop(row[0], *[float(field or '0.0') for field in row[1:]]))
+        crop = Crop(row[0], *[float(field or '0.0') for field in row[1:]])
+        crops[crop.name] = crop
     return crops
 
 
 
 def summarize_crops(crops):
-    for crop in crops:
+    for crop in crops.itervalues():
         print crop.name, ':'
         print '\tBed feet', crop.bed_feet
         print '\tFresh pounds', crop.fresh_eating_weeks * crop.fresh_eating_lbs
         print '\tStorage pounds', crop.storage_eating_weeks * crop.storage_eating_lbs
 
     print 'Total crops:', len(crops)
-    print 'Total feet:', sum([crop.bed_feet for crop in crops])
+    print 'Total feet:', sum([crop.bed_feet for crop in crops.itervalues()])
     print 'Fresh pounds:', sum([
-            crop.fresh_eating_weeks * crop.fresh_eating_lbs for crop in crops])
+            crop.fresh_eating_weeks * crop.fresh_eating_lbs for crop in crops.itervalues()])
     print 'Storage pounds:', sum([
             crop.storage_eating_weeks * crop.storage_eating_lbs
-            for crop in crops])
+            for crop in crops.itervalues()])
 
 
 
@@ -182,6 +255,8 @@ def load_seeds(path):
     data.next()
     seeds = []
     for row in data:
+        if not row[0]:
+            continue
         seeds.append(Seed(
                 crop=row[0], variety=row[1],
                 greenhouse_days=parse_or_default(int, row[2], None),
@@ -208,13 +283,56 @@ def load_seeds(path):
     return seeds
 
 
+class Order(record('crop seed kind count cost')):
+    pass
+
+
 
 def summarize_seeds(crops, seeds):
-    crops = dict([(crop.name, crop) for crop in crops])
-    for seed in seeds:
-        crop = crops[seed.crop]
-        bed_feet = crop.total_yield / crop.yield_lbs_per_bed_foot
-        print 'Plant', bed_feet, 'feet of', seed.variety, '(', crop.name, ')'
+    costs = []
+    order = []
+    key = lambda seed: seed.crop
+    for (crop, varieties) in groupby(sorted(seeds, key=key), key):
+        varieties = list(varieties)
+        numVarieties = len(varieties)
+        for seed in varieties:
+            crop = crops[seed.crop]
+            if not crop.total_yield:
+                continue
+            # XXX Just assume equal plantings of all varieties for now
+            bed_feet = crop.bed_feet / numVarieties
+            print 'Plant', bed_feet, 'feet of', seed.variety, '(', crop.name, ')',
+            prices = seed.prices
+            if prices:
+                prices.sort(key=lambda price: (not price.row_foot_increment, price.dollars_per_row_foot))
+                price = prices[0]
+                minimum_row_feet = crop.rows_per_bed * bed_feet
+                minimum_cost = price.dollars_per_row_foot * minimum_row_feet
+                if price.row_foot_increment:
+                    order_units = ceil(minimum_row_feet / price.row_foot_increment)
+                    actual_row_feet = order_units * price.row_foot_increment
+                    actual_cost = price.dollars_per_row_foot * actual_row_feet
+                    costs.append((minimum_cost, actual_cost))
+                    order.append(Order(
+                            crop, seed, price.kind, order_units, actual_cost))
+                    print 'cost of $', actual_cost,
+                else:
+                    print '** uncertain actual cost **',
+                    costs.append((minimum_cost, minimum_cost))
+                print '(ideal cost $', minimum_cost, ')'
+            else:
+                print
+    minimum_total = sum(minimum_cost for (minimum_cost, actual_cost) in costs)
+    actual_total = sum(actual_cost for (minimum_cost, actual_cost) in costs)
+    for item in order:
+        print '\t$%(cost)5.2f %(count)d %(kind)s of %(variety)s (%(crop)s)' % dict(
+            cost=item.cost, count=item.count, kind=item.kind,
+            variety=item.seed.variety, crop=item.crop.name)
+    print 'Total\t$%(cost)5.2f (ideal $%(ideal)5.2f)' % dict(
+        cost=actual_total, ideal=minimum_total)
+    return order
+
+
 
 
 
@@ -222,7 +340,11 @@ def main():
     crops = load_crops(FilePath(argv[1]))
     seeds = load_seeds(FilePath(argv[2]))
     summarize_crops(crops)
-    summarize_seeds(crops, seeds)
+    order = summarize_seeds(crops, seeds)
+    for item in order:
+        print '%(variety)s (%(crop)s) $%(cost)5.2f' % dict(
+            variety=item.seed.variety, crop=item.crop.name,
+            cost=item.cost / item.crop.total_yield)
 
 if __name__ == '__main__':
     main()
