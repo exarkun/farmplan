@@ -13,7 +13,7 @@ class Crop(record(
         'fresh_eating_lbs fresh_eating_weeks '
         'storage_eating_lbs storage_eating_weeks '
         'variety harvest_weeks row_feet_per_oz_seed '
-        'rows_per_bed yield_lbs_per_bed_foot _bed_feet')):
+        'yield_lbs_per_bed_foot rows_per_bed _bed_feet')):
     """
     @ivar name: The general name of this crop (eg carrots, beets)
 
@@ -42,9 +42,11 @@ class Crop(record(
     """
     @property
     def bed_feet(self):
-        if self._bed_feet is None:
+        if self.total_yield and self.yield_lbs_per_bed_foot:
             return self.total_yield / self.yield_lbs_per_bed_foot
-        return self._bed_feet
+        if self._bed_feet is not None:
+            return self._bed_feet
+        raise RuntimeError("Who knows? %r" % (self,))
 
 
     @property
