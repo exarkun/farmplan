@@ -306,6 +306,7 @@ def summarize_seeds(crops, seeds):
             print 'Plant', bed_feet, 'feet of', seed.variety, '(', crop.name, ')',
             prices = seed.prices
             if prices:
+                order_percent = '???'
                 prices.sort(key=lambda price: (not price.row_foot_increment, price.dollars_per_row_foot))
                 price = prices[0]
                 minimum_row_feet = crop.rows_per_bed * bed_feet
@@ -317,11 +318,16 @@ def summarize_seeds(crops, seeds):
                     costs.append((minimum_cost, actual_cost))
                     order.append(Order(
                             crop, seed, price.kind, order_units, actual_cost))
+
+                    if minimum_row_feet:
+                        order_ratio = float(actual_row_feet) / minimum_row_feet
+                        order_percent = order_ratio * 100
+
                     print 'cost of $', actual_cost,
                 else:
                     print '** uncertain actual cost **',
                     costs.append((minimum_cost, minimum_cost))
-                print '(ideal cost $', minimum_cost, ')'
+                print '(ideal cost $', minimum_cost, ';', order_percent, '% of required seed)'
             else:
                 print
     minimum_total = sum(minimum_cost for (minimum_cost, actual_cost) in costs)
