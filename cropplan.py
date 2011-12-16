@@ -65,7 +65,7 @@ class Crop(record(
 
 
 
-class Price(record('kind dollars_per_row_foot row_foot_increment')):
+class Price(record('kind dollars dollars_per_row_foot row_foot_increment')):
     pass
 
 
@@ -160,6 +160,7 @@ class Seed(record(
         if self.dollars_per_mini:
             return Price(
                 kind='mini',
+                dollars=self.dollars_per_mini,
                 dollars_per_row_foot=self.dollars_per_mini / self.row_foot_per_mini,
                 row_foot_increment=self.row_foot_per_mini)
         return None
@@ -170,6 +171,7 @@ class Seed(record(
         if self.dollars_per_packet:
             return Price(
                 kind='packet',
+                dollars=self.dollars_per_packet,
                 dollars_per_row_foot=self.dollars_per_row_foot_packet,
                 row_foot_increment=self.row_foot_per_packet)
         return None
@@ -180,6 +182,7 @@ class Seed(record(
         if self.dollars_per_thousand:
             return Price(
                 kind='thousand',
+                dollars=self.dollars_per_thousand,
                 dollars_per_row_foot=self.dollars_per_row_foot_thousand,
                 row_foot_increment=self.row_foot_per_thousand)
         return None
@@ -190,6 +193,7 @@ class Seed(record(
         if self.dollars_per_oz:
             return Price(
                 kind='ounce',
+                dollars=self.dollars_per_oz,
                 dollars_per_row_foot=self.dollars_per_row_foot_oz,
                 row_foot_increment=self.row_foot_per_oz)
         return None
@@ -200,6 +204,30 @@ class Seed(record(
         return filter(None, [
             self.price_per_mini, self.price_per_packet, self.price_per_thousand,
             self.price_per_ounce])
+
+
+    def order(self, bed_feet):
+        prices = self.prices
+        if not prices:
+            return MissingInformation("Prices for %s/%s unavailable" % (
+                    self.crop.name, self.variety))
+
+        # Put prices for all products with known row foot coverage first, since
+        # we can figure out more about those.  After that, sort by cost.
+        def key(price):
+            return not price.row_foot_increment, price.dollars_per_row_foot
+        prices.sort(key=key)
+        price = prices[0]
+        minimum_row_feet = self.crop.rows_per_bed * bed_feet
+        if not price.row_foot_increment:
+            return MissingInformation(
+                "Row foot increment for %s of %s/%s unavailable" % (
+                    price.kind, self.crop.name, self.variety))
+
+        order_units = ceil(minimum_row_feet / price.row_foot_increment)
+
+        return Order(self, minimum_row_feet, price, order_units)
+
 
 
 
@@ -251,7 +279,7 @@ def parse_date(string):
 
 
 
-def load_seeds(path):
+def load_seeds(path, crops):
     data = reader(path.open())
     # Ignore the first row
     data.next()
@@ -260,7 +288,7 @@ def load_seeds(path):
         if not row[0]:
             continue
         seeds.append(Seed(
-                crop=row[0], variety=row[1],
+                crop=crops[row[0]], variety=row[1],
                 greenhouse_days=parse_or_default(int, row[2], None),
                 beginning_of_season=parse_or_default(parse_date, row[3], None),
                 maturity_days=parse_or_default(int, row[4], None),
@@ -285,74 +313,85 @@ def load_seeds(path):
     return seeds
 
 
-class Order(record('crop seed kind count cost')):
-    pass
 
+class Order(record('seed row_feet price count')):
+    """
+    @ivar row_feet: The number of row feet of planting this order is intended to
+    satisfy.  Note that the order may be for more seeds than are needed to plant
+    this area.
+    """
+    def excess(self):
+        """
+        The ratio of the number of bed feet this order will plant to the number
+        of bed feet of this seed the plan calls for.
+        """
+        plantable_row_feet = self.count * self.price.row_foot_increment
+        return plantable_row_feet / self.row_feet
+
+
+    def cost(self):
+        return self.price.dollars * self.count
+
+
+
+def make_order(crops, seeds):
+    key = lambda seed: seed.crop
+    for (crop, varieties) in groupby(sorted(seeds, key=key), key):
+        if not crop.total_yield:
+            continue
+        # XXX Just assume equal plantings of all varieties for now
+        varieties = list(varieties)
+        bed_feet = crop.bed_feet / len(varieties)
+        for seed in varieties:
+            order = seed.order(bed_feet)
+            if isinstance(order, MissingInformation):
+                print order.message
+            else:
+                yield order
 
 
 def summarize_seeds(crops, seeds):
-    costs = []
-    order = []
-    key = lambda seed: seed.crop
-    for (crop, varieties) in groupby(sorted(seeds, key=key), key):
-        varieties = list(varieties)
-        numVarieties = len(varieties)
-        for seed in varieties:
-            crop = crops[seed.crop]
-            if not crop.total_yield:
-                continue
-            # XXX Just assume equal plantings of all varieties for now
-            bed_feet = crop.bed_feet / numVarieties
-            print 'Plant', bed_feet, 'feet of', seed.variety, '(', crop.name, ')',
-            prices = seed.prices
-            if prices:
-                order_percent = '???'
-                prices.sort(key=lambda price: (not price.row_foot_increment, price.dollars_per_row_foot))
-                price = prices[0]
-                minimum_row_feet = crop.rows_per_bed * bed_feet
-                minimum_cost = price.dollars_per_row_foot * minimum_row_feet
-                if price.row_foot_increment:
-                    order_units = ceil(minimum_row_feet / price.row_foot_increment)
-                    actual_row_feet = order_units * price.row_foot_increment
-                    actual_cost = price.dollars_per_row_foot * actual_row_feet
-                    costs.append((minimum_cost, actual_cost))
-                    order.append(Order(
-                            crop, seed, price.kind, order_units, actual_cost))
+    order = list(make_order(crops, seeds))
 
-                    if minimum_row_feet:
-                        order_ratio = float(actual_row_feet) / minimum_row_feet
-                        order_percent = order_ratio * 100
+    order_total = 0.0
+    ideal_total = 0.0
 
-                    print 'cost of $', actual_cost,
-                else:
-                    print '** uncertain actual cost **',
-                    costs.append((minimum_cost, minimum_cost))
-                print '(ideal cost $', minimum_cost, ';', order_percent, '% of required seed)'
-            else:
-                print
-    minimum_total = sum(minimum_cost for (minimum_cost, actual_cost) in costs)
-    actual_total = sum(actual_cost for (minimum_cost, actual_cost) in costs)
+    for item in order:
+
+        cost = item.cost()
+        order_total += cost
+        ideal_total += cost / item.excess()
+
+        bed_feet = item.row_feet / item.seed.crop.rows_per_bed
+        print 'Plant', bed_feet, 'feet of', item.seed.variety,
+        print'(', item.seed.crop.name, ') at $', cost,
+        print '(ideally', cost / item.excess(), ')'
+
     for item in order:
         print '\t$%(cost)5.2f %(count)d %(kind)s of %(variety)s (%(crop)s)' % dict(
-            cost=item.cost, count=item.count, kind=item.kind,
-            variety=item.seed.variety, crop=item.crop.name)
+            cost=item.cost(), count=item.count, kind=item.price.kind,
+            variety=item.seed.variety, crop=item.seed.crop.name)
     print 'Total\t$%(cost)5.2f (ideal $%(ideal)5.2f)' % dict(
-        cost=actual_total, ideal=minimum_total)
+        cost=order_total, ideal=ideal_total)
     return order
 
 
+
+class MissingInformation(object):
+    def __init__(self, message):
+        self.message = message
 
 
 
 def main():
     crops = load_crops(FilePath(argv[1]))
-    seeds = load_seeds(FilePath(argv[2]))
+    seeds = load_seeds(FilePath(argv[2]), crops)
     summarize_crops(crops)
     order = summarize_seeds(crops, seeds)
     for item in order:
         print '%(variety)s (%(crop)s) $%(cost)5.2f' % dict(
-            variety=item.seed.variety, crop=item.crop.name,
-            cost=item.cost / item.crop.total_yield)
+            variety=item.seed.variety, crop=item.seed.crop.name,
+            cost=item.cost() / item.seed.crop.total_yield)
 
 if __name__ == '__main__':
     main()
