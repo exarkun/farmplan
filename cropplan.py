@@ -363,9 +363,12 @@ def summarize_seeds(crops, seeds):
         ideal_total += cost / item.excess()
 
         bed_feet = item.row_feet / item.seed.crop.rows_per_bed
-        print 'Plant', bed_feet, 'feet of', item.seed.variety,
-        print'(', item.seed.crop.name, ') at $', cost,
-        print '(ideally', cost / item.excess(), ')'
+        print (
+            'Plant %(bed_feet)s feet of %(variety)s (%(crop)s) '
+            'at $%(cost)5.2f (ideally %(ideal)5.2f; %(buy)5.2f%%)' % {
+                'bed_feet': bed_feet, 'variety': item.seed.variety,
+                'crop': item.seed.crop.name, 'cost': cost,
+                'ideal': cost / item.excess(), 'buy': item.excess() * 100})
 
     for item in order:
         print '\t$%(cost)5.2f %(count)d %(kind)s of %(variety)s (%(crop)s)' % dict(
