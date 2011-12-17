@@ -389,12 +389,18 @@ def summarize_seeds(crops, seeds):
 
 
 
+class Event(record('day activity seed')):
+    pass
+
+
+
 def schedule_planting(crops, seeds):
     # naive approach - schedule everything as early as possible
     epoch = date.today().replace(year=2012, month=1, day=1)
     schedule = []
     for seed in seeds:
         if seed.beginning_of_season is None or seed.greenhouse_days is None:
+            schedule.append(Event(0, 'finish planning', seed))
             continue
         if seed.greenhouse_days != 0:
             # It starts in the greenhouse
@@ -412,10 +418,6 @@ def schedule_planting(crops, seeds):
         print '%(activity)s %(variety)s (%(crop)s) on %(date)s' % dict(
             activity=event.activity, variety=event.seed.variety,
             crop=event.seed.crop.name, date=when)
-
-
-class Event(record('day activity seed')):
-    pass
 
 
 def main():
