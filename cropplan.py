@@ -2,10 +2,17 @@ from csv import reader
 from sys import argv
 from math import ceil
 from itertools import groupby
+from datetime import date, timedelta
 
 from twisted.python.filepath import FilePath
 
 from epsilon.structlike import record
+
+
+class MissingInformation(object):
+    def __init__(self, message):
+        self.message = message
+
 
 
 class Crop(record(
@@ -230,7 +237,6 @@ class Seed(record(
 
 
 
-
 def load_crops(path):
     data = reader(path.open())
     # Ignore the first two rows
@@ -274,8 +280,11 @@ def parse_or_default(parser, string, default):
 
 def parse_date(string):
     month, day, year = map(int, string.split('/'))
-    # Close enough
-    return month * 30 + day
+    # The year in the data is irrelevant garbage.  This data is cyclic with a
+    # periodicity of 1 year.  If you want to plan perennials you have some work
+    # cut out for you.
+    when = date(2012, month, day)
+    return int(when.strftime('%j')) - 1
 
 
 
@@ -380,10 +389,33 @@ def summarize_seeds(crops, seeds):
 
 
 
-class MissingInformation(object):
-    def __init__(self, message):
-        self.message = message
+def schedule_planting(crops, seeds):
+    # naive approach - schedule everything as early as possible
+    epoch = date.today().replace(year=2012, month=1, day=1)
+    schedule = []
+    for seed in seeds:
+        if seed.beginning_of_season is None or seed.greenhouse_days is None:
+            continue
+        if seed.greenhouse_days != 0:
+            # It starts in the greenhouse
+            greenhouse_day = seed.beginning_of_season - seed.greenhouse_days
+            schedule.append(Event(greenhouse_day, 'seed in greenhouse', seed))
+            schedule.append(Event(seed.beginning_of_season, 'transplant', seed))
+        else:
+            schedule.append(Event(seed.beginning_of_season, 'seed outside', seed))
 
+        harvest_day = seed.beginning_of_season + seed.maturity_days
+        schedule.append(Event(harvest_day, 'harvest', seed))
+    schedule.sort(key=lambda event: event.day)
+    for event in schedule:
+        when = epoch + timedelta(days=event.day)
+        print '%(activity)s %(variety)s (%(crop)s) on %(date)s' % dict(
+            activity=event.activity, variety=event.seed.variety,
+            crop=event.seed.crop.name, date=when)
+
+
+class Event(record('day activity seed')):
+    pass
 
 
 def main():
@@ -395,6 +427,8 @@ def main():
         print '%(variety)s (%(crop)s) $%(cost)5.2f' % dict(
             variety=item.seed.variety, crop=item.seed.crop.name,
             cost=item.cost() / item.seed.crop.total_yield)
+    schedule_planting(crops, seeds)
+
 
 if __name__ == '__main__':
     main()
