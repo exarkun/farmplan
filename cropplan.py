@@ -2,7 +2,9 @@ from csv import reader
 from sys import argv
 from math import ceil
 from itertools import groupby
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
+
+from vobject import iCalendar
 
 from twisted.python.filepath import FilePath
 
@@ -34,6 +36,9 @@ class Crop(record(
 
     @ivar variety: Bogus, ignore
 
+    @ivar varieties: A C{list} of L{Seed} instances representing the specific
+        varieties of this crop for which data is available.
+
     @ivar harvest_weeks: Number of weeks of to be harvesting one planting of
         this crop.
 
@@ -47,6 +52,11 @@ class Crop(record(
 
     @ivar _bed_feet: Number of bed feet to plant in this crop.
     """
+    def __init__(self, *args, **kwargs):
+        super(Crop, self).__init__(*args, **kwargs)
+        self.varieties = []
+
+
     @property
     def bed_feet(self):
         if self.total_yield and self.yield_lbs_per_bed_foot:
@@ -236,6 +246,17 @@ class Seed(record(
         return Order(self, minimum_row_feet, price, order_units)
 
 
+    @property
+    def bed_feet(self):
+        """
+        The number of bed feet of this variety of this crop to plant.  This is
+        determined by looking at the total bed feet for the crop and dividing it
+        up amongst all of the varieties being planted.
+        """
+        # Just divide evenly for now - change to use weights soon
+        return float(self.crop.bed_feet) / len(self.crop.varieties)
+
+
 
 def load_crops(path):
     data = reader(path.open())
@@ -296,29 +317,32 @@ def load_seeds(path, crops):
     for row in data:
         if not row[0]:
             continue
-        seeds.append(Seed(
-                crop=crops[row[0]], variety=row[1],
-                greenhouse_days=parse_or_default(int, row[2], None),
-                beginning_of_season=parse_or_default(parse_date, row[3], None),
-                maturity_days=parse_or_default(int, row[4], None),
-                end_of_season=parse_or_default(parse_date, row[5], None),
-                seeds_per_packet=parse_or_default(int, row[6], None),
-                row_foot_per_packet=parse_or_default(float, row[7], None),
-                seeds_per_oz=parse_or_default(float, row[8], None),
-                dollars_per_packet=parse_or_default(float, row[9], None),
-                dollars_per_row_foot_packet=parse_or_default(float, row[10], None),
-                dollars_per_thousand=parse_or_default(float, row[11], None),
-                dollars_per_oz=parse_or_default(float, row[12], None),
-                dollars_per_row_foot_thousand=parse_or_default(float, row[13], None),
-                row_foot_per_oz=parse_or_default(float, row[14], None),
-                dollars_per_row_foot_oz=parse_or_default(float, row[15], None),
-                dollars_per_mini=parse_or_default(float, row[16], None),
-                seeds_per_mini=parse_or_default(int, row[17], None),
-                row_foot_per_mini=parse_or_default(float, row[18], None),
-                favored=row[19],
-                harvest_duration=parse_or_default(int, row[20], None),
-                notes=row[21],
-                ))
+        crop = crops[row[0]]
+        seed = Seed(
+            crop=crop, variety=row[1],
+            greenhouse_days=parse_or_default(int, row[2], None),
+            beginning_of_season=parse_or_default(parse_date, row[3], None),
+            maturity_days=parse_or_default(int, row[4], None),
+            end_of_season=parse_or_default(parse_date, row[5], None),
+            seeds_per_packet=parse_or_default(int, row[6], None),
+            row_foot_per_packet=parse_or_default(float, row[7], None),
+            seeds_per_oz=parse_or_default(float, row[8], None),
+            dollars_per_packet=parse_or_default(float, row[9], None),
+            dollars_per_row_foot_packet=parse_or_default(float, row[10], None),
+            dollars_per_thousand=parse_or_default(float, row[11], None),
+            dollars_per_oz=parse_or_default(float, row[12], None),
+            dollars_per_row_foot_thousand=parse_or_default(float, row[13], None),
+            row_foot_per_oz=parse_or_default(float, row[14], None),
+            dollars_per_row_foot_oz=parse_or_default(float, row[15], None),
+            dollars_per_mini=parse_or_default(float, row[16], None),
+            seeds_per_mini=parse_or_default(int, row[17], None),
+            row_foot_per_mini=parse_or_default(float, row[18], None),
+            favored=row[19],
+            harvest_duration=parse_or_default(int, row[20], None),
+            notes=row[21],
+            )
+        seeds.append(seed)
+        crop.varieties.append(seed)
     return seeds
 
 
@@ -348,11 +372,8 @@ def make_order(crops, seeds):
     for (crop, varieties) in groupby(sorted(seeds, key=key), key):
         if not crop.total_yield:
             continue
-        # XXX Just assume equal plantings of all varieties for now
-        varieties = list(varieties)
-        bed_feet = crop.bed_feet / len(varieties)
         for seed in varieties:
-            order = seed.order(bed_feet)
+            order = seed.order(seed.bed_feet)
             if isinstance(order, MissingInformation):
                 print order.message
             else:
@@ -389,35 +410,205 @@ def summarize_seeds(crops, seeds):
 
 
 
-class Event(record('day activity seed')):
-    pass
+class _ByTheFootTask(object):
+    @property
+    def duration(self):
+        # Cannot multiply timedelta and float; so round up to the next integer
+        # number of bed feet.  It's close enough for scheduling considerations.
+        return self._time_cost * int(ceil(self.quantity))
+
+
+
+class _DayTask(object):
+    @property
+    def date(self):
+        return self.when.date()
+
+
+
+# record needs better support for inheritance
+class FinishPlanning(record('seed'), _DayTask):
+    # Get this to sort first
+    when = datetime(2012, 1, 1, 0, 0, 0)
+
+    # Amount of time an event of this type takes to complete
+    duration = timedelta(minutes=30)
+
+    def summarize(self):
+        return 'Finish planning %(variety)s (%(crop)s)' % dict(
+            variety=self.seed.variety, crop=self.seed.crop.name)
+
+
+class SeedFlats(record('when seed quantity'), _ByTheFootTask, _DayTask):
+    # Time cost in seconds for seeding one bed foot into a flat
+    # XXX Should be based on what's being seeded due to spacing differences
+    _time_cost = timedelta(minutes=2)
+
+    def summarize(self):
+        return 'Seed flats for %(quantity)d bed feet of %(variety)s (%(crop)s)' % dict(
+            variety=self.seed.variety, quantity=self.quantity,
+            crop=self.seed.crop.name)
+
+
+
+class DirectSeed(record('when seed quantity'), _ByTheFootTask, _DayTask):
+    # Time cost for direct seeding one bed foot
+    # XXX I totally made this up
+    _time_cost = timedelta(seconds=30)
+
+    def summarize(self):
+        return 'Direct seed %(quantity)d bed feet of %(variety)s (%(crop)s)' % dict(
+            variety=self.seed.variety, quantity=self.quantity,
+            crop=self.seed.crop.name)
+
+
+
+class BedPreparation(record('when seed quantity'), _ByTheFootTask, _DayTask):
+    # XXX Totally made up; what is bed preparation, even?
+    _time_cost = timedelta(minutes=2)
+
+    def summarize(self):
+        return 'Prepare %(quantity)d bed feet for %(variety)s (%(crop)s)' % dict(
+            variety=self.seed.variety, quantity=self.quantity,
+            crop=self.seed.crop.name)
+
+
+
+class Weed(record('when seed quantity'), _ByTheFootTask, _DayTask):
+    # Time cost for weeding one bed foot of the some crop
+    _time_cost = timedelta(minutes=10)
+
+    def summarize(self):
+        return 'Weed %(quantity)s bed feet of %(variety)s (%(crop)s)' % dict(
+            variety=self.seed.variety, quantity=self.quantity,
+            crop=self.seed.crop.name)
+
+
+
+class Transplant(record('when seed quantity'), _ByTheFootTask, _DayTask):
+    _time_cost = timedelta(minutes=1)
+
+    def summarize(self):
+        return 'Transplant %(quantity)d bed feet of %(variety)s (%(crop)s)' % dict(
+            variety=self.seed.variety, quantity=self.quantity,
+            crop=self.seed.crop.name)
+
+
+
+class Harvest(record('when seed quantity'), _ByTheFootTask, _DayTask):
+    _time_cost = timedelta(minutes=2)
+
+    def summarize(self):
+        return 'Harvest %(variety)s (%(crop)s)' % dict(
+            variety=self.seed.variety, crop=self.seed.crop.name)
 
 
 
 def schedule_planting(crops, seeds):
     # naive approach - schedule everything as early as possible
-    epoch = date.today().replace(year=2012, month=1, day=1)
     schedule = []
+    epoch = datetime(year=2012, month=1, day=1, hour=0, minute=0, second=0)
     for seed in seeds:
         if seed.beginning_of_season is None or seed.greenhouse_days is None:
-            schedule.append(Event(0, 'finish planning', seed))
+            schedule.append(FinishPlanning(seed))
             continue
+
+        # Prep the bed before planting in it
+        schedule.append(BedPreparation(
+                epoch + timedelta(days=seed.beginning_of_season - 14), seed,
+                seed.bed_feet))
+
         if seed.greenhouse_days != 0:
             # It starts in the greenhouse
-            greenhouse_day = seed.beginning_of_season - seed.greenhouse_days
-            schedule.append(Event(greenhouse_day, 'seed in greenhouse', seed))
-            schedule.append(Event(seed.beginning_of_season, 'transplant', seed))
+            greenhouse_day = timedelta(
+                days=seed.beginning_of_season - seed.greenhouse_days)
+            schedule.append(SeedFlats(
+                    epoch + greenhouse_day, seed, seed.bed_feet))
+            schedule.append(Transplant(
+                    epoch + timedelta(days=seed.beginning_of_season), seed,
+                    seed.bed_feet))
         else:
-            schedule.append(Event(seed.beginning_of_season, 'seed outside', seed))
+            schedule.append(DirectSeed(
+                    epoch + timedelta(days=seed.beginning_of_season), seed,
+                    seed.bed_feet))
 
-        harvest_day = seed.beginning_of_season + seed.maturity_days
-        schedule.append(Event(harvest_day, 'harvest', seed))
-    schedule.sort(key=lambda event: event.day)
+        harvest_day = timedelta(
+            days=seed.beginning_of_season + seed.maturity_days)
+        schedule.append(Harvest(epoch + harvest_day, seed, seed.bed_feet))
+
+    schedule.sort(key=lambda event: event.when)
+
+    # Slightly less naive: now spread things out, if there is too much work
+    # being done on any particular day.
+
+    # The maximum number of hours of work to schedule per day
+    maxManHours = timedelta(hours=3)
+
+    # The time of day at which work starts
+    startOfDay = timedelta(hours=8)
+
+    # Walk forward, day by day, from the day of the first job.  For each day,
+    # gather up all of the new jobs that can be done from that day forward.
+    # Then try to allocate time to those jobs.
+    day = schedule[0].date
+
+    # Here are all the jobs which may be scheduled on the day we've gotten up
+    # to, ordered by the earliest time they may be done.  Preference will be
+    # given to jobs which can be done earlier (based on the weak heuristic that
+    # they probably _can't_ be done later; does that hold?  I don't know).
+    available = []
+
+    # Here are all the jobs that have been scheduled according to the new,
+    # max-man-hours scheduler.
+    manHourLimitSchedule = []
+
+    while schedule or available:
+        # First move any jobs out of schedule that may be done on or before the
+        # day being scheduled.
+        while schedule and schedule[0].date <= day:
+            available.append(schedule.pop(0))
+
+        # Now schedule some jobs for today.  This is naive, it just schedules
+        # jobs in order until one goes over the daily hour limit.
+        hours = timedelta(hours=0)
+        while available and hours + available[0].duration <= maxManHours:
+            event = available.pop(0)
+            manHourLimitSchedule.append(event)
+            schedDiff = day - event.date
+            event.when += startOfDay + hours
+            if schedDiff:
+                # The event got moved from its originally scheduled time.  Push
+                # back any subsequent events that depend on it.
+                print 'Moved', event, 'from', event.when, 'to', event.when + schedDiff
+                event.when += schedDiff
+                for dep in schedule:
+                    if dep.seed is event.seed:
+                        print dep, 'depends on', event, '; moving back', schedDiff
+                        dep.when += schedDiff
+
+            hours += event.duration
+
+        # And move to the next day
+        day += timedelta(days=1)
+
+    return manHourLimitSchedule
+
+
+def schedule_plaintext(schedule):
     for event in schedule:
-        when = epoch + timedelta(days=event.day)
-        print '%(activity)s %(variety)s (%(crop)s) on %(date)s' % dict(
-            activity=event.activity, variety=event.seed.variety,
-            crop=event.seed.crop.name, date=when)
+        print '%(event)s on %(date)s' % dict(
+            event=event.summarize(), date=event.when)
+
+
+def schedule_ical(schedule):
+    cal = iCalendar()
+    for event in schedule:
+        vevent = cal.add('vevent')
+        vevent.add('dtstart').value = event.when
+        vevent.add('dtend').value = event.when + event.duration
+
+        vevent.add('summary').value = event.summarize()
+    print cal.serialize()
 
 
 def main():
@@ -429,8 +620,9 @@ def main():
         print '%(variety)s (%(crop)s) $%(cost)5.2f' % dict(
             variety=item.seed.variety, crop=item.seed.crop.name,
             cost=item.cost() / item.seed.crop.total_yield)
-    schedule_planting(crops, seeds)
-
+    schedule = schedule_planting(crops, seeds)
+    # schedule_plaintext(schedule)
+    schedule_ical(schedule)
 
 if __name__ == '__main__':
     main()
