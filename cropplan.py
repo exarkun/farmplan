@@ -82,20 +82,71 @@ class Crop(record(
 
 
 
-class Price(record('kind dollars dollars_per_row_foot row_foot_increment')):
-    pass
+class Price(record('kind dollars row_foot_increment')):
+    @property
+    def dollars_per_row_foot(self):
+        return self.dollars / self.row_foot_increment
+
+
+    def units_for(self, row_feet):
+        return ceil(row_feet / self.row_foot_increment)
+
+
+class _AttributeMultiple(object):
+    def __init__(self, attribute_name, multiplier):
+        self.attribute_name = attribute_name
+        self.multiplier = multiplier
+
+
+    def __get__(self, oself, type):
+        value = getattr(oself, self.attribute_name)
+        if value is None:
+            return None
+        return value * self.multiplier
+
+
+class _PriceComputer(object):
+    def __init__(self, kind, dollars_attribute, row_foot_attribute, seed_count_attribute, seed_count):
+        self.kind = kind
+        self.dollars_attribute = dollars_attribute
+        self.row_foot_attribute = row_foot_attribute
+        self.seed_count_attribute = seed_count_attribute
+        self.seed_count = seed_count
+
+
+    def __get__(self, oself, type):
+        cost = getattr(oself, self.dollars_attribute)
+        if self.seed_count is None:
+            count = getattr(oself, self.seed_count_attribute)
+        else:
+            count = self.seed_count
+
+        if self.row_foot_attribute is None and count is not None:
+            feet = oself._count_to_feet(count)
+        elif self.row_foot_attribute is not None:
+            feet = getattr(oself, self.row_foot_attribute)
+        else:
+            feet = None
+
+        if cost is None or count is None or feet is None:
+            return None
+
+        return Price(
+            kind=self.kind,
+            dollars=cost,
+            row_foot_increment=feet)
 
 
 
 class Seed(record(
-        'crop variety '
-        'greenhouse_days beginning_of_season maturity_days end_of_season '
-        'seeds_per_packet row_foot_per_packet '
-        'seeds_per_oz dollars_per_packet dollars_per_row_foot_packet '
-        'dollars_per_thousand dollars_per_oz '
-        'dollars_per_row_foot_thousand row_foot_per_oz dollars_per_row_foot_oz '
-        'dollars_per_mini seeds_per_mini row_foot_per_mini favored '
-        'harvest_duration notes')):
+        'crop variety greenhouse_days beginning_of_season maturity_days '
+        'end_of_season seeds_per_packet row_foot_per_packet seeds_per_oz '
+        'dollars_per_packet dollars_per_hundred dollars_per_two_fifty '
+        'dollars_per_five_hundred dollars_per_thousand '
+        'dollars_per_thousand_min_five dollars_per_quarter_oz '
+        'dollars_per_half_oz dollars_per_oz dollars_per_quarter_lb '
+        'dollars_per_half_lb dollars_per_lb row_foot_per_oz dollars_per_mini '
+        'seeds_per_mini row_foot_per_mini harvest_duration notes')):
     """
     @ivar crop: The name of the crop - matches the name of one of the L{Crop}
         instances.
@@ -127,23 +178,44 @@ class Seed(record(
     @ivar dollars_per_packet: The price of a packet of seeds of this variety.
         May be C{None}, etc.
 
-    @ivar dollars_per_row_foot_packet: The price to plant one row foot of this
-        variety, assuming seeds are bought by the packet.  May be C{None}, etc.
+    @ivar dollars_per_hundred: If seeds are sold by the 100, the price of 100
+        seeds of this variety.  May be C{None}, etc.
+
+    @ivar dollars_per_two_fifty: If seeds are sold by the 250, the price of 250
+        seeds of this variety.  May be C{None}, etc.
+
+    @ivar dollars_per_five_hundred: If seeds are sold by the 500, the price of 500
+        seeds of this variety.  May be C{None}, etc.
 
     @ivar dollars_per_thousand: If seeds are sold by the 1000, the price of 1000
         seeds of this variety.  May be C{None}, etc.
 
+    @ivar dollars_per_thousand_min_five: If seeds are sold by the 1000 and the
+        price changes when at least 5000 are ordered, the price of 1000 when
+        buying at least 5000 seeds of this variety.  May be C{None}, etc.
+
+    @ivar dollars_per_quarter_oz: If seeds are sold by the quarter ounce, the
+        price of one quarter ounce of seeds of this variety.  May be C{None},
+        etc.
+
+    @ivar dollars_per_half_oz: If seeds are sold by the half ounce, the price of
+        one half ounce of seeds of this variety.  May be C{None}, etc.
+
     @ivar dollars_per_oz: If seeds are sold by the ounce, the price of one ounce
         of seeds of this variety.  May be C{None}, etc.
 
-    @ivar dollars_per_row_foot_thousand: The price to plant one row foot of this
-        variety, assuming seeds are bought by the 1000.  May be C{None}.
+    @ivar dollars_per_quarter_lb: If seeds are sold by the quarter pound, the
+        price of one quarter pound of seeds of this variety.  May be C{None},
+        etc.
+
+    @ivar dollars_per_half_lb: If seeds are sold by the half pound, the price of
+        one half pound of seeds of this variety.  May be C{None}, etc.
+
+    @ivar dollars_per_lb: If seeds are sold by the ounce, the price of one ounce
+        of seeds of this variety.  May be C{None}, etc.
 
     @ivar row_foot_per_oz: The number of row feet one ounce of seed of this
         variety will plant.  May be C{None}, etc.
-
-    @ivar dollars_per_row_foot_oz: The price to plant one row foot of this
-        variety, assuming seeds are bought by the ounce.  May be C{None}, etc.
 
     @ivar dollars_per_mini: The cost of a mini of seeds of this variety.  May be
         C{None}.
@@ -154,13 +226,17 @@ class Seed(record(
     @ivar row_foot_per_mini: The number of row feet one mini of seed of this
         variety will plant.  May be C{None}.
 
-    @ivar favored: Bogus, unused.
-
     @ivar harvest_duration: The number of days for which this variety can be
         harvested once it is mature.
 
     @ivar notes: Freeform text.
     """
+    def _count_to_feet(self, count):
+        if self.row_foot_per_thousand is None:
+            return None
+        return self.row_foot_per_thousand  * (count / 1000.0)
+
+
     @property
     def row_foot_per_thousand(self):
         # Assume that seeds from a packet plant the same as seeds from an M -
@@ -169,58 +245,40 @@ class Seed(record(
         if self.seeds_per_packet is not None and self.row_foot_per_packet is not None:
             row_foot_per_seed = self.row_foot_per_packet / self.seeds_per_packet
             return row_foot_per_seed * 1000
+        if self.seeds_per_oz is not None and self.row_foot_per_oz is not None:
+            row_foot_per_seed = self.row_foot_per_oz / self.seeds_per_oz
+            return row_foot_per_seed * 1000
         return None
 
+    price_per_mini = _PriceComputer('mini', 'dollars_per_mini', 'row_foot_per_mini', 'seeds_per_mini', None)
+    price_per_packet = _PriceComputer('packet', 'dollars_per_packet', 'row_foot_per_packet', 'seeds_per_packet', None)
 
-    @property
-    def price_per_mini(self):
-        if self.dollars_per_mini:
-            return Price(
-                kind='mini',
-                dollars=self.dollars_per_mini,
-                dollars_per_row_foot=self.dollars_per_mini / self.row_foot_per_mini,
-                row_foot_increment=self.row_foot_per_mini)
-        return None
+    price_per_hundred = _PriceComputer('hundred', 'dollars_per_hundred', None, None, 100)
+    price_per_two_fifty = _PriceComputer('two hundred fifty', 'dollars_per_two_fifty', None, None, 250)
+    price_per_five_hundred = _PriceComputer('five hundred', 'dollars_per_five_hundred', None, None, 500)
+    price_per_thousand = _PriceComputer('thousand', 'dollars_per_thousand', None, None, 1000)
 
+    seeds_per_quarter_oz = _AttributeMultiple('seeds_per_oz', 0.25)
+    seeds_per_half_oz = _AttributeMultiple('seeds_per_oz', 0.5)
 
-    @property
-    def price_per_packet(self):
-        if self.dollars_per_packet:
-            return Price(
-                kind='packet',
-                dollars=self.dollars_per_packet,
-                dollars_per_row_foot=self.dollars_per_row_foot_packet,
-                row_foot_increment=self.row_foot_per_packet)
-        return None
+    price_per_quarter_oz = _PriceComputer('1/4 oz', 'dollars_per_quarter_oz', None, 'seeds_per_quarter_oz', None)
+    price_per_half_oz = _PriceComputer('1/2 oz', 'dollars_per_half_oz', None, 'seeds_per_half_oz', None)
+    price_per_oz = _PriceComputer('ounce', 'dollars_per_oz', None, 'seeds_per_oz', None)
 
+    seeds_per_quarter_lb = _AttributeMultiple('seeds_per_oz', 4.0)
+    seeds_per_half_lb = _AttributeMultiple('seeds_per_oz', 8.0)
+    seeds_per_lb = _AttributeMultiple('seeds_per_oz', 16.0)
 
-    @property
-    def price_per_thousand(self):
-        if self.dollars_per_thousand:
-            return Price(
-                kind='thousand',
-                dollars=self.dollars_per_thousand,
-                dollars_per_row_foot=self.dollars_per_row_foot_thousand,
-                row_foot_increment=self.row_foot_per_thousand)
-        return None
-
-
-    @property
-    def price_per_ounce(self):
-        if self.dollars_per_oz:
-            return Price(
-                kind='ounce',
-                dollars=self.dollars_per_oz,
-                dollars_per_row_foot=self.dollars_per_row_foot_oz,
-                row_foot_increment=self.row_foot_per_oz)
-        return None
-
+    price_per_quarter_lb = _PriceComputer('1/4 lb', 'dollars_per_quarter_lb', None, 'seeds_per_quarter_lb', None)
+    price_per_half_lb = _PriceComputer('1/2 lb', 'dollars_per_half_lb', None, 'seeds_per_half_lb', None)
+    price_per_lb = _PriceComputer('pound', 'dollars_per_lb', None, 'seeds_per_lb', None)
 
     @property
     def prices(self):
-        return filter(None, [
-            self.price_per_mini, self.price_per_packet, self.price_per_thousand,
-            self.price_per_ounce])
+        price_attributes = [attr for attr in dir(self) if attr.startswith('price_')]
+        prices = [getattr(self, attr) for attr in price_attributes]
+        actual = filter(None, prices)
+        return actual
 
 
     def order(self, bed_feet):
@@ -229,21 +287,23 @@ class Seed(record(
             return MissingInformation("Prices for %s/%s unavailable" % (
                     self.crop.name, self.variety))
 
+        minimum_row_feet = self.crop.rows_per_bed * bed_feet
+
         # Put prices for all products with known row foot coverage first, since
         # we can figure out more about those.  After that, sort by cost.
         def key(price):
-            return not price.row_foot_increment, price.dollars_per_row_foot
+            return (
+                not price.row_foot_increment,
+                price.dollars * price.units_for(minimum_row_feet))
+
         prices.sort(key=key)
         price = prices[0]
-        minimum_row_feet = self.crop.rows_per_bed * bed_feet
         if not price.row_foot_increment:
             return MissingInformation(
                 "Row foot increment for %s of %s/%s unavailable" % (
                     price.kind, self.crop.name, self.variety))
 
-        order_units = ceil(minimum_row_feet / price.row_foot_increment)
-
-        return Order(self, minimum_row_feet, price, order_units)
+        return Order(self, minimum_row_feet, price)
 
 
     @property
@@ -328,18 +388,23 @@ def load_seeds(path, crops):
             row_foot_per_packet=parse_or_default(float, row[7], None),
             seeds_per_oz=parse_or_default(float, row[8], None),
             dollars_per_packet=parse_or_default(float, row[9], None),
-            dollars_per_row_foot_packet=parse_or_default(float, row[10], None),
-            dollars_per_thousand=parse_or_default(float, row[11], None),
-            dollars_per_oz=parse_or_default(float, row[12], None),
-            dollars_per_row_foot_thousand=parse_or_default(float, row[13], None),
-            row_foot_per_oz=parse_or_default(float, row[14], None),
-            dollars_per_row_foot_oz=parse_or_default(float, row[15], None),
-            dollars_per_mini=parse_or_default(float, row[16], None),
-            seeds_per_mini=parse_or_default(int, row[17], None),
-            row_foot_per_mini=parse_or_default(float, row[18], None),
-            favored=row[19],
-            harvest_duration=parse_or_default(int, row[20], None),
-            notes=row[21],
+            dollars_per_hundred=parse_or_default(float, row[10], None),
+            dollars_per_two_fifty=parse_or_default(float, row[11], None),
+            dollars_per_five_hundred=parse_or_default(float, row[12], None),
+            dollars_per_thousand=parse_or_default(float, row[13], None),
+            dollars_per_thousand_min_five=parse_or_default(float, row[14], None),
+            dollars_per_quarter_oz=parse_or_default(float, row[15], None),
+            dollars_per_half_oz=parse_or_default(float, row[16], None),
+            dollars_per_oz=parse_or_default(float, row[17], None),
+            dollars_per_quarter_lb=parse_or_default(float, row[18], None),
+            dollars_per_half_lb=parse_or_default(float, row[19], None),
+            dollars_per_lb=parse_or_default(float, row[20], None),
+            row_foot_per_oz=parse_or_default(float, row[21], None),
+            dollars_per_mini=parse_or_default(float, row[22], None),
+            seeds_per_mini=parse_or_default(int, row[23], None),
+            row_foot_per_mini=parse_or_default(float, row[24], None),
+            harvest_duration=parse_or_default(int, row[25], None),
+            notes=row[26],
             )
         seeds.append(seed)
         crop.varieties.append(seed)
@@ -347,12 +412,17 @@ def load_seeds(path, crops):
 
 
 
-class Order(record('seed row_feet price count')):
+class Order(record('seed row_feet price')):
     """
     @ivar row_feet: The number of row feet of planting this order is intended to
-    satisfy.  Note that the order may be for more seeds than are needed to plant
-    this area.
+        satisfy.  Note that the order may be for more seeds than are needed to
+        plant this area.
     """
+    @property
+    def count(self):
+        return self.price.units_for(self.row_feet)
+
+
     def excess(self):
         """
         The ratio of the number of bed feet this order will plant to the number
@@ -425,9 +495,13 @@ class _DayTask(object):
         return self.when.date()
 
 
+class _Pretty(object):
+    def __str__(self):
+        return '(%s)' % (self.summarize(),)
+
 
 # record needs better support for inheritance
-class FinishPlanning(record('seed'), _DayTask):
+class FinishPlanning(record('seed'), _DayTask, _Pretty):
     # Get this to sort first
     when = datetime(2012, 1, 1, 0, 0, 0)
 
@@ -439,7 +513,7 @@ class FinishPlanning(record('seed'), _DayTask):
             variety=self.seed.variety, crop=self.seed.crop.name)
 
 
-class SeedFlats(record('when seed quantity'), _ByTheFootTask, _DayTask):
+class SeedFlats(record('when seed quantity'), _ByTheFootTask, _DayTask, _Pretty):
     # Time cost in seconds for seeding one bed foot into a flat
     # XXX Should be based on what's being seeded due to spacing differences
     _time_cost = timedelta(minutes=2)
@@ -451,7 +525,7 @@ class SeedFlats(record('when seed quantity'), _ByTheFootTask, _DayTask):
 
 
 
-class DirectSeed(record('when seed quantity'), _ByTheFootTask, _DayTask):
+class DirectSeed(record('when seed quantity'), _ByTheFootTask, _DayTask, _Pretty):
     # Time cost for direct seeding one bed foot
     # XXX I totally made this up
     _time_cost = timedelta(seconds=30)
@@ -463,7 +537,7 @@ class DirectSeed(record('when seed quantity'), _ByTheFootTask, _DayTask):
 
 
 
-class BedPreparation(record('when seed quantity'), _ByTheFootTask, _DayTask):
+class BedPreparation(record('when seed quantity'), _ByTheFootTask, _DayTask, _Pretty):
     # XXX Totally made up; what is bed preparation, even?
     _time_cost = timedelta(minutes=2)
 
@@ -474,7 +548,7 @@ class BedPreparation(record('when seed quantity'), _ByTheFootTask, _DayTask):
 
 
 
-class Weed(record('when seed quantity'), _ByTheFootTask, _DayTask):
+class Weed(record('when seed quantity'), _ByTheFootTask, _DayTask, _Pretty):
     # Time cost for weeding one bed foot of the some crop
     _time_cost = timedelta(minutes=10)
 
@@ -485,7 +559,7 @@ class Weed(record('when seed quantity'), _ByTheFootTask, _DayTask):
 
 
 
-class Transplant(record('when seed quantity'), _ByTheFootTask, _DayTask):
+class Transplant(record('when seed quantity'), _ByTheFootTask, _DayTask, _Pretty):
     _time_cost = timedelta(minutes=1)
 
     def summarize(self):
@@ -495,7 +569,7 @@ class Transplant(record('when seed quantity'), _ByTheFootTask, _DayTask):
 
 
 
-class Harvest(record('when seed quantity'), _ByTheFootTask, _DayTask):
+class Harvest(record('when seed quantity'), _ByTheFootTask, _DayTask, _Pretty):
     _time_cost = timedelta(minutes=2)
 
     def summarize(self):
