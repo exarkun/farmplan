@@ -22,7 +22,7 @@ class Crop(record(
         'fresh_eating_lbs fresh_eating_weeks '
         'storage_eating_lbs storage_eating_weeks '
         'variety harvest_weeks row_feet_per_oz_seed '
-        'yield_lbs_per_bed_foot rows_per_bed _bed_feet')):
+        'yield_lbs_per_bed_foot rows_per_bed in_row_spacing _bed_feet')):
     """
     @ivar name: The general name of this crop (eg carrots, beets)
 
@@ -49,6 +49,9 @@ class Crop(record(
 
     @ivar yield_lbs_per_bed_foot: Number of pounds of this crop produced per bed
         foot (three foot wide bed) planted.
+
+    @ivar in_row_spacing: Spacing between within each row in a bed of this crop
+        (feet).
 
     @ivar _bed_feet: Number of bed feet to plant in this crop.
     """
@@ -144,7 +147,7 @@ class Seed(record(
         'dollars_per_packet dollars_per_hundred dollars_per_two_fifty '
         'dollars_per_five_hundred dollars_per_thousand '
         'dollars_per_thousand_min_five dollars_per_quarter_oz '
-        'dollars_per_half_oz dollars_per_oz dollars_per_quarter_lb '
+        'dollars_per_half_oz dollars_per_oz dollars_per_eighth_lb dollars_per_quarter_lb '
         'dollars_per_half_lb dollars_per_lb row_foot_per_oz dollars_per_mini '
         'seeds_per_mini row_foot_per_mini harvest_duration notes')):
     """
@@ -203,6 +206,10 @@ class Seed(record(
 
     @ivar dollars_per_oz: If seeds are sold by the ounce, the price of one ounce
         of seeds of this variety.  May be C{None}, etc.
+
+    @ivar dollars_per_eighth_lb: If seeds are sold by the eighth pound, the
+        price of one eighth pound of seeds of this variety.  May be C{None},
+        etc.
 
     @ivar dollars_per_quarter_lb: If seeds are sold by the quarter pound, the
         price of one quarter pound of seeds of this variety.  May be C{None},
@@ -265,10 +272,12 @@ class Seed(record(
     price_per_half_oz = _PriceComputer('1/2 oz', 'dollars_per_half_oz', None, 'seeds_per_half_oz', None)
     price_per_oz = _PriceComputer('ounce', 'dollars_per_oz', None, 'seeds_per_oz', None)
 
+    seeds_per_eighth_lb = _AttributeMultiple('seeds_per_oz', 2.0)
     seeds_per_quarter_lb = _AttributeMultiple('seeds_per_oz', 4.0)
     seeds_per_half_lb = _AttributeMultiple('seeds_per_oz', 8.0)
     seeds_per_lb = _AttributeMultiple('seeds_per_oz', 16.0)
 
+    price_per_eighth_lb = _PriceComputer('1/8 lb', 'dollars_per_eighth_lb', None, 'seeds_per_eighth_lb', None)
     price_per_quarter_lb = _PriceComputer('1/4 lb', 'dollars_per_quarter_lb', None, 'seeds_per_quarter_lb', None)
     price_per_half_lb = _PriceComputer('1/2 lb', 'dollars_per_half_lb', None, 'seeds_per_half_lb', None)
     price_per_lb = _PriceComputer('pound', 'dollars_per_lb', None, 'seeds_per_lb', None)
@@ -396,15 +405,16 @@ def load_seeds(path, crops):
             dollars_per_quarter_oz=parse_or_default(float, row[15], None),
             dollars_per_half_oz=parse_or_default(float, row[16], None),
             dollars_per_oz=parse_or_default(float, row[17], None),
-            dollars_per_quarter_lb=parse_or_default(float, row[18], None),
-            dollars_per_half_lb=parse_or_default(float, row[19], None),
-            dollars_per_lb=parse_or_default(float, row[20], None),
-            row_foot_per_oz=parse_or_default(float, row[21], None),
-            dollars_per_mini=parse_or_default(float, row[22], None),
-            seeds_per_mini=parse_or_default(int, row[23], None),
-            row_foot_per_mini=parse_or_default(float, row[24], None),
-            harvest_duration=parse_or_default(int, row[25], None),
-            notes=row[26],
+            dollars_per_eighth_lb=parse_or_default(float, row[18], None),
+            dollars_per_quarter_lb=parse_or_default(float, row[19], None),
+            dollars_per_half_lb=parse_or_default(float, row[20], None),
+            dollars_per_lb=parse_or_default(float, row[21], None),
+            row_foot_per_oz=parse_or_default(float, row[22], None),
+            dollars_per_mini=parse_or_default(float, row[23], None),
+            seeds_per_mini=parse_or_default(int, row[24], None),
+            row_foot_per_mini=parse_or_default(float, row[25], None),
+            harvest_duration=parse_or_default(int, row[26], None),
+            notes=row[27],
             )
         seeds.append(seed)
         crop.varieties.append(seed)
