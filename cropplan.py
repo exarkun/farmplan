@@ -523,10 +523,21 @@ class FinishPlanning(record('seed'), _DayTask, _Pretty):
             variety=self.seed.variety, crop=self.seed.crop.name)
 
 
-class SeedFlats(record('when seed quantity'), _ByTheFootTask, _DayTask, _Pretty):
+
+class _FlatsTask(object):
+    def required_flats(self):
+        crop = self.seed.crop
+        seedlings = self.quantity / (crop.in_row_spacing / 12.0) * crop.rows_per_bed
+        return ceil(seedlings / 72.0) * self.use_or_disuse
+
+
+
+class SeedFlats(record('when seed quantity'), _ByTheFootTask, _DayTask, _Pretty, _FlatsTask):
     # Time cost in seconds for seeding one bed foot into a flat
     # XXX Should be based on what's being seeded due to spacing differences
     _time_cost = timedelta(minutes=2)
+
+    use_or_disuse = 1
 
     def summarize(self):
         return 'Seed flats for %(quantity)d bed feet of %(variety)s (%(crop)s)' % dict(
@@ -569,8 +580,10 @@ class Weed(record('when seed quantity'), _ByTheFootTask, _DayTask, _Pretty):
 
 
 
-class Transplant(record('when seed quantity'), _ByTheFootTask, _DayTask, _Pretty):
+class Transplant(record('when seed quantity'), _ByTheFootTask, _DayTask, _Pretty, _FlatsTask):
     _time_cost = timedelta(minutes=1)
+
+    use_or_disuse = -1
 
     def summarize(self):
         return 'Transplant %(quantity)d bed feet of %(variety)s (%(crop)s)' % dict(
@@ -617,7 +630,7 @@ def schedule_planting(crops, seeds):
                     seed.bed_feet))
 
         harvest_day = timedelta(
-            days=seed.beginning_of_season + seed.maturity_days)
+            days=seed.beginning_of_season + seed.maturity_days - seed.greenhouse_days)
         schedule.append(Harvest(epoch + harvest_day, seed, seed.bed_feet))
 
     schedule.sort(key=lambda event: event.when)
@@ -678,10 +691,12 @@ def schedule_planting(crops, seeds):
     return manHourLimitSchedule
 
 
+
 def schedule_plaintext(schedule):
     for event in schedule:
         print '%(event)s on %(date)s' % dict(
             event=event.summarize(), date=event.when)
+
 
 
 def schedule_ical(schedule):
@@ -695,6 +710,40 @@ def schedule_ical(schedule):
     print cal.serialize()
 
 
+
+def summarize_seedlings(schedule):
+    flats = 0
+    for event in schedule:
+        if isinstance(event, (SeedFlats, Transplant)):
+            flats += event.required_flats()
+            print 'After', event, 'in use flats is', flats
+
+
+
+def summarize_beds(schedule):
+    used = 0
+    for event in schedule:
+        if isinstance(event, (DirectSeed, Transplant)):
+            used += event.quantity
+        elif isinstance(event, Harvest):
+            used -= event.quantity
+        else:
+            continue
+        print 'After', event, 'bed feet in use is', used
+
+
+
+def summarize_yields(schedule):
+    for event in schedule:
+        if isinstance(event, Harvest):
+            print 'Harvesting %(amount)s lbs of %(variety)s (%(crop)s) on %(when)s' % dict(
+                amount=event.seed.crop.yield_lbs_per_bed_foot * event.quantity,
+                variety=event.seed.variety,
+                crop=event.seed.crop.name,
+                when=event.when)
+
+
+
 def main():
     crops = load_crops(FilePath(argv[1]))
     seeds = load_seeds(FilePath(argv[2]), crops)
@@ -705,8 +754,13 @@ def main():
             variety=item.seed.variety, crop=item.seed.crop.name,
             cost=item.cost() / item.seed.crop.total_yield)
     schedule = schedule_planting(crops, seeds)
-    # schedule_plaintext(schedule)
-    schedule_ical(schedule)
+    schedule_plaintext(schedule)
+    # schedule_ical(schedule)
+    summarize_seedlings(schedule)
+    summarize_beds(schedule)
+    summarize_yields(schedule)
+
+
 
 if __name__ == '__main__':
     main()
