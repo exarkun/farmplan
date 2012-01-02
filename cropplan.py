@@ -4,6 +4,8 @@ from math import ceil
 from itertools import groupby
 from datetime import date, datetime, timedelta
 
+from dateutil.rrule import SU
+
 from vobject import iCalendar
 
 from twisted.python.filepath import FilePath
@@ -11,51 +13,190 @@ from twisted.python.usage import Options
 
 from epsilon.structlike import record
 
+YEAR = 2012
+
 def make_coercer(valid):
     def coerce(value):
-        if value not in valid:
+        try:
+            return valid[value]
+        except KeyError:
             raise ValueError("%r is not valid; try one of %s" % (
                     value, ", ".join(valid)))
-        return value
     return coerce
+
+
+
+def display_nothing(*args, **kwargs):
+    pass
+
+
+
+def schedule_plaintext(schedule):
+    for event in schedule:
+        print '%(event)s on %(date)s' % dict(
+            event=event.summarize(), date=event.when)
+
+
+
+def schedule_ical(schedule):
+    cal = iCalendar()
+    for event in schedule:
+        vevent = cal.add('vevent')
+        vevent.add('dtstart').value = event.when
+        vevent.add('dtend').value = event.when + event.duration
+
+        vevent.add('summary').value = event.summarize()
+    print cal.serialize()
+
+
+
+def summarize_crops(crops):
+    for crop in crops.itervalues():
+        print crop.name, ':'
+        print '\tBed feet', crop.bed_feet
+        print '\tFresh pounds', crop.fresh_eating_weeks * crop.fresh_eating_lbs
+        print '\tStorage pounds', crop.storage_eating_weeks * crop.storage_eating_lbs
+
+    print 'Total crops:', len(crops)
+    print 'Total feet:', sum([crop.bed_feet for crop in crops.itervalues()])
+    print 'Fresh pounds:', sum([
+            crop.fresh_eating_weeks * crop.fresh_eating_lbs for crop in crops.itervalues()])
+    print 'Storage pounds:', sum([
+            crop.storage_eating_weeks * crop.storage_eating_lbs
+            for crop in crops.itervalues()])
+
+
+
+def summarize_crops_graph(crops):
+    import matplotlib.pyplot as plt
+    # A figure - whatever that is
+    fig = plt.figure()
+
+    # A subplot - whatever that is.  The three arguments define the grid
+    # parameters.  The first is the number of rows per unit; the second is the
+    # number of columns per unit; the last is uniquely identifies the plot being
+    # operated on.
+    plot = fig.add_subplot(1, 1, 1)
+
+    # x values
+    indices = range(len(crops))
+    # width of each bar in an unknown unit
+    width = 0.9
+
+    cropdata = sorted(crops.items())
+
+    fresh_yields = [crop.fresh_yield for (name, crop) in cropdata]
+    storage_yields = [crop.storage_yield for (name, crop) in cropdata]
+
+    fresh_bar = plot.bar(
+        indices, fresh_yields, width, color='g')
+    storage_bar = plot.bar(
+        indices, storage_yields, width, color='brown', bottom=fresh_yields)
+
+    plot.set_title('Expected Yields')
+    plot.set_ylabel('Pounds')
+    plot.legend((fresh_bar[0], storage_bar[0]), ('Fresh', 'Storage'))
+
+    # Positions of the ticks
+    plot.set_xticks([i + width / 2 for i in indices])
+
+    # Labels for the ticks
+    labels = plot.set_xticklabels([
+            '\n'.join(name.split(None, 1)) for (name, crop) in cropdata])
+
+    # Get the xticks to not overlap each other
+    labels = plot.get_xticklabels()
+    for label in labels:
+        label.update(dict(rotation='vertical'))
+
+    plt.show()
+
+
+
+def summarize_order(order):
+    for item in order:
+        print '%(variety)s (%(crop)s) $%(cost)5.2f' % dict(
+            variety=item.seed.variety, crop=item.seed.crop.name,
+            cost=item.cost() / item.seed.crop.total_yield)
+
+
+
+def summarize_seedlings(schedule):
+    flats = 0
+    for event in schedule:
+        if isinstance(event, (SeedFlats, Transplant)):
+            flats += event.required_flats()
+            print 'After', event, 'in use flats is', flats
+
+
+
+def summarize_seedlings_graph(schedule):
+    import matplotlib.pyplot as plt
+    import matplotlib.dates as mdates
+
+    dates = [date(YEAR, 1, 1)]
+    flats = [0]
+    for event in schedule:
+        if isinstance(event, (SeedFlats, Transplant)):
+            dates.append(event.when)
+            flats.append(flats[-1] + event.required_flats())
+
+    months = mdates.MonthLocator()
+    days = mdates.WeekdayLocator(byweekday=SU)
+    monthsFmt = mdates.DateFormatter('%b')
+
+    fig = plt.figure()
+
+    plot = fig.add_subplot(1, 1, 1)
+
+    plot.set_title('Flat Usage')
+    plot.set_ylabel('72 Cell Flats In Use')
+
+    plot.plot(dates, flats)
+
+    plot.xaxis.set_major_locator(months)
+    plot.xaxis.set_major_formatter(monthsFmt)
+    plot.xaxis.set_minor_locator(days)
+
+    plot.format_xdata = mdates.DateFormatter('%Y-%m-%d')
+
+    # Do this after other stuff, because this shit is all about side-effects.
+    fig.autofmt_xdate()
+
+    plt.show()
 
 
 class CropPlanOptions(Options):
     optParameters = [
         ('schedule', None, None,
-         'Summarize the labor schedule (plaintext or ical).',
-         make_coercer(["text", "ical"])),
+         'Summarize the labor schedule (text or ical).',
+         make_coercer(dict(text=schedule_plaintext, ical=schedule_ical))),
         ('crops', None, None,
-         'Summarize the crops being planted.',
-         make_coercer(["text", "graph"])),
+         'Summarize the crops being planted (text or graph).',
+         make_coercer(dict(text=summarize_crops, graph=summarize_crops_graph))),
+        ('order', None, None,
+         'Summarize the seed order (text or graph).',
+         make_coercer(dict(text=summarize_order))),
+        ('flats', None, None, 'Summarize flats usage.',
+         make_coercer(dict(text=summarize_seedlings, graph=summarize_seedlings_graph))),
         ]
 
     optFlags = [
-        ('seeds', None, 'Summarize the seed purchase.'),
-        ('flats', None, 'Summarize flats usage.'),
         ('beds', None, 'Summarize beds usage.'),
         ('yields', None, 'Summarize yield.'),
         ]
+
+    def __init__(self):
+        Options.__init__(self)
+        self['schedule'] = display_nothing
+        self['crops'] = display_nothing
+        self['seeds'] = display_nothing
+        self['order'] = display_nothing
 
 
     def parseArgs(self, crop, seed):
         self['crop-path'] = FilePath(crop)
         self['seed-path'] = FilePath(seed)
-
-
-    def postOptions(self):
-        if self['schedule'] == 'text':
-            self['schedule'] = schedule_plaintext
-        elif self['schedule'] == 'ical':
-            self['schedule'] = schedule_ical
-        else:
-            self['schedule'] = schedule_none
-
-
-        if self['crops'] == 'text':
-            self['crops'] = summarize_crops
-        elif self['crops'] == 'graph':
-            self['crops'] = summarize_crops_graph
 
 
 
@@ -388,69 +529,6 @@ def load_crops(path):
 
 
 
-def summarize_crops(crops):
-    for crop in crops.itervalues():
-        print crop.name, ':'
-        print '\tBed feet', crop.bed_feet
-        print '\tFresh pounds', crop.fresh_eating_weeks * crop.fresh_eating_lbs
-        print '\tStorage pounds', crop.storage_eating_weeks * crop.storage_eating_lbs
-
-    print 'Total crops:', len(crops)
-    print 'Total feet:', sum([crop.bed_feet for crop in crops.itervalues()])
-    print 'Fresh pounds:', sum([
-            crop.fresh_eating_weeks * crop.fresh_eating_lbs for crop in crops.itervalues()])
-    print 'Storage pounds:', sum([
-            crop.storage_eating_weeks * crop.storage_eating_lbs
-            for crop in crops.itervalues()])
-
-
-
-def summarize_crops_graph(crops):
-    import matplotlib.pyplot as plt
-    # A figure - whatever that is
-    fig = plt.figure()
-
-    # A subplot - whatever that is.  The three arguments define the grid
-    # parameters.  The first is the number of rows per unit; the second is the
-    # number of columns per unit; the last is uniquely identifies the plot being
-    # operated on.
-    plot = fig.add_subplot(1, 1, 1)
-
-    # x values
-    indices = range(len(crops))
-    # width of each bar in an unknown unit
-    width = 0.9
-
-    cropdata = sorted(crops.items())
-
-    fresh_yields = [crop.fresh_yield for (name, crop) in cropdata]
-    storage_yields = [crop.storage_yield for (name, crop) in cropdata]
-
-    fresh_bar = plot.bar(
-        indices, fresh_yields, width, color='g')
-    storage_bar = plot.bar(
-        indices, storage_yields, width, color='brown', bottom=fresh_yields)
-
-    plot.set_title('Expected Yields')
-    plot.set_ylabel('Pounds')
-    plot.legend((fresh_bar[0], storage_bar[0]), ('Fresh', 'Storage'))
-
-    # Positions of the ticks
-    plot.set_xticks([i + width / 2 for i in indices])
-
-    # Labels for the ticks
-    labels = plot.set_xticklabels([
-            '\n'.join(name.split(None, 1)) for (name, crop) in cropdata])
-
-    # Get the xticks to not overlap each other
-    labels = plot.get_xticklabels()
-    for label in labels:
-        label.update(dict(rotation='vertical'))
-
-    plt.show()
-
-
-
 def parse_or_default(parser, string, default):
     """
     Parse the given string using the given parser, or return the given default
@@ -467,7 +545,7 @@ def parse_date(string):
     # The year in the data is irrelevant garbage.  This data is cyclic with a
     # periodicity of 1 year.  If you want to plan perennials you have some work
     # cut out for you.
-    when = date(2012, month, day)
+    when = date(YEAR, month, day)
     return int(when.strftime('%j')) - 1
 
 
@@ -554,7 +632,7 @@ def make_order(crops, seeds):
                 yield order
 
 
-def summarize_seeds(crops, seeds):
+def generate_seed_order(crops, seeds):
     order = list(make_order(crops, seeds))
 
     order_total = 0.0
@@ -607,7 +685,7 @@ class _Pretty(object):
 # record needs better support for inheritance
 class FinishPlanning(record('seed'), _DayTask, _Pretty):
     # Get this to sort first
-    when = datetime(2012, 1, 1, 0, 0, 0)
+    when = datetime(YEAR, 1, 1, 0, 0, 0)
 
     # Amount of time an event of this type takes to complete
     duration = timedelta(minutes=30)
@@ -698,7 +776,7 @@ class Harvest(record('when seed quantity'), _ByTheFootTask, _DayTask, _Pretty):
 def schedule_planting(crops, seeds):
     # naive approach - schedule everything as early as possible
     schedule = []
-    epoch = datetime(year=2012, month=1, day=1, hour=0, minute=0, second=0)
+    epoch = datetime(year=YEAR, month=1, day=1, hour=0, minute=0, second=0)
     for seed in seeds:
         if seed.beginning_of_season is None or seed.greenhouse_days is None:
             schedule.append(FinishPlanning(seed))
@@ -786,39 +864,6 @@ def schedule_planting(crops, seeds):
 
 
 
-def schedule_none(schedule):
-    pass
-
-
-
-def schedule_plaintext(schedule):
-    for event in schedule:
-        print '%(event)s on %(date)s' % dict(
-            event=event.summarize(), date=event.when)
-
-
-
-def schedule_ical(schedule):
-    cal = iCalendar()
-    for event in schedule:
-        vevent = cal.add('vevent')
-        vevent.add('dtstart').value = event.when
-        vevent.add('dtend').value = event.when + event.duration
-
-        vevent.add('summary').value = event.summarize()
-    print cal.serialize()
-
-
-
-def summarize_seedlings(schedule):
-    flats = 0
-    for event in schedule:
-        if isinstance(event, (SeedFlats, Transplant)):
-            flats += event.required_flats()
-            print 'After', event, 'in use flats is', flats
-
-
-
 def summarize_beds(schedule):
     used = 0
     for event in schedule:
@@ -850,24 +895,18 @@ def main():
     crops = load_crops(options['crop-path'])
     seeds = load_seeds(options['seed-path'], crops)
 
-    render_crops = options['crops']
-    if render_crops is not None:
-        render_crops(crops)
+    options['crops'](crops)
 
-    order = summarize_seeds(crops, seeds)
-    if options['seeds']:
-        for item in order:
-            print '%(variety)s (%(crop)s) $%(cost)5.2f' % dict(
-                variety=item.seed.variety, crop=item.seed.crop.name,
-                cost=item.cost() / item.seed.crop.total_yield)
+    order = generate_seed_order(crops, seeds)
+
+    options['order'](order)
 
     schedule = schedule_planting(crops, seeds)
     display_schedule = options['schedule']
     if display_schedule is not None:
         display_schedule(schedule)
 
-    if options['flats']:
-        summarize_seedlings(schedule)
+    options['flats'](schedule)
     if options['beds']:
         summarize_beds(schedule)
     if options['yields']:
