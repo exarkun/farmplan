@@ -115,9 +115,10 @@ def summarize_crops_graph(crops):
 
 def summarize_order(order):
     for item in order:
-        print '%(variety)s (%(crop)s) $%(cost)5.2f' % dict(
+        print '%(variety)s (%(crop)s - Product ID %(product_id)s) $%(cost)5.2f' % dict(
             variety=item.seed.variety, crop=item.seed.crop.name,
-            cost=item.cost() / item.seed.crop.total_yield)
+            cost=item.cost() / item.seed.crop.total_yield,
+            product_id=item.seed.product_id)
 
 
 
@@ -496,26 +497,36 @@ class Seed(record(
             return MissingInformation("Prices for %s/%s unavailable" % (
                     self.crop.name, self.variety))
 
+        # Get rid of anything without a known length, we can't meaningfully
+        # select these for the order.
+        known_prices = [
+            p for p in prices if p.row_foot_increment is not None]
+
         # How much excess to build in to the order
         minimum_overrun = 0.3
 
-        minimum_row_feet = self.crop.rows_per_bed * bed_feet * (1 + minimum_overrun)
+        required_row_feet = self.crop.rows_per_bed * bed_feet
+        required_row_feet *= (1 + minimum_overrun)
 
-        # Put prices for all products with known row foot coverage first, since
-        # we can figure out more about those.  After that, sort by cost.
-        def key(price):
-            return (
-                not price.row_foot_increment,
-                price.dollars * price.units_for(minimum_row_feet))
+        order_prices = {}
+        remaining_row_feet = required_row_feet
 
-        prices.sort(key=key)
-        price = prices[0]
-        if not price.row_foot_increment:
-            return MissingInformation(
-                "Row foot increment for %s of %s/%s unavailable" % (
-                    price.kind, self.crop.name, self.variety))
+        while remaining_row_feet > 0:
 
-        return Order(self, minimum_row_feet, price)
+            # Sort the prices by the price per row foot, accounting for the
+            # effective price increase incurred by wasted seed.
+            known_prices.sort(key=lambda p: p.dollars / min(p.row_foot_increment, remaining_row_feet))
+
+            # Select the cheapest thing according to that scheme
+            the_price = known_prices[0]
+
+            order_prices[the_price] = order_prices.get(the_price, 0) + 1
+            remaining_row_feet -= the_price.row_foot_increment
+
+        return [
+            Order(self, price.row_foot_increment * count, price)
+            for (price, count)
+            in order_prices.items()]
 
 
     @property
@@ -649,7 +660,8 @@ def make_order(crops, seeds):
                 if isinstance(order, MissingInformation):
                     print order.message
                 else:
-                    yield order
+                    for o in order:
+                        yield o
             else:
                 print 'Not ordering %s (%s) because it has no bed feet allocated.' % (
                     seed.variety, seed.crop.name)
@@ -669,16 +681,18 @@ def generate_seed_order(crops, seeds):
 
         bed_feet = item.row_feet / item.seed.crop.rows_per_bed
         print (
-            'Plant %(bed_feet)s feet of %(variety)s (%(crop)s) '
+            'Plant %(bed_feet)s feet of %(variety)s (%(crop)s - Product ID %(product_id)s) '
             'at $%(cost)5.2f (ideally %(ideal)5.2f; %(buy)5.2f%%)' % {
                 'bed_feet': bed_feet, 'variety': item.seed.variety,
                 'crop': item.seed.crop.name, 'cost': cost,
-                'ideal': cost / item.excess(), 'buy': item.excess() * 100})
+                'ideal': cost / item.excess(), 'buy': item.excess() * 100,
+                'product_id': item.seed.product_id})
 
     for item in order:
-        print '\t$%(cost)5.2f %(count)d %(kind)s of %(variety)s (%(crop)s)' % dict(
+        print '\t$%(cost)5.2f %(count)d %(kind)s of %(variety)s (%(crop)s - Product ID %(product_id)s)' % dict(
             cost=item.cost(), count=item.count, kind=item.price.kind,
-            variety=item.seed.variety, crop=item.seed.crop.name)
+            variety=item.seed.variety, crop=item.seed.crop.name,
+            product_id=item.seed.product_id)
     print 'Total\t$%(cost)5.2f (ideal $%(ideal)5.2f)' % dict(
         cost=order_total, ideal=ideal_total)
     return order
