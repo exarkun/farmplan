@@ -192,6 +192,7 @@ class CropPlanOptions(Options):
         self['crops'] = display_nothing
         self['seeds'] = display_nothing
         self['order'] = display_nothing
+        self['flats'] = display_nothing
 
 
     def parseArgs(self, crop, seed):
@@ -331,18 +332,28 @@ class _PriceComputer(object):
 
 
 class Seed(record(
-        'crop variety greenhouse_days beginning_of_season maturity_days '
+        'crop variety parts_per_crop product_id greenhouse_days beginning_of_season maturity_days '
         'end_of_season seeds_per_packet row_foot_per_packet seeds_per_oz '
         'dollars_per_packet dollars_per_hundred dollars_per_two_fifty '
-        'dollars_per_five_hundred dollars_per_thousand '
-        'dollars_per_thousand_min_five dollars_per_quarter_oz '
+        'dollars_per_five_hundred dollars_per_thousand dollars_per_five_thousand dollars_per_quarter_oz '
         'dollars_per_half_oz dollars_per_oz dollars_per_eighth_lb dollars_per_quarter_lb '
         'dollars_per_half_lb dollars_per_lb row_foot_per_oz dollars_per_mini '
         'seeds_per_mini row_foot_per_mini harvest_duration notes')):
     """
     @ivar crop: The name of the crop - matches the name of one of the L{Crop}
         instances.
+
     @ivar variety: The name of a specific variety or cultivar of this crop.
+
+    @ivar parts_per_crop: Within the crop of which this seed is a variety, the
+        ratio of this seed to other varieties of this crop.  The total quantity
+        to plant is determined by the crop (eg 100 feet of tomatoes); this
+        allows the control of relative rates (eg for 75 feet of sauce tomatoes
+        and 25 feet of cherry tomatoes, give sauce tomatoes a parts_per_crop of
+        3 and the cherry tomatoes a parts_per_crop of 1).
+
+    @ivar product_id: A string giving the seed company product identifier for
+        this seed variety.
 
     @ivar greenhouse_days: The number of days to keep this variety in a
         greenhouse before transplanting outdoors.
@@ -382,9 +393,8 @@ class Seed(record(
     @ivar dollars_per_thousand: If seeds are sold by the 1000, the price of 1000
         seeds of this variety.  May be C{None}, etc.
 
-    @ivar dollars_per_thousand_min_five: If seeds are sold by the 1000 and the
-        price changes when at least 5000 are ordered, the price of 1000 when
-        buying at least 5000 seeds of this variety.  May be C{None}, etc.
+    @ivar dollars_per_five_thousand: If seeds are sold by the 5000, the price of
+        5000 seeds of this variety.  May be C{None}, etc.
 
     @ivar dollars_per_quarter_oz: If seeds are sold by the quarter ounce, the
         price of one quarter ounce of seeds of this variety.  May be C{None},
@@ -453,6 +463,7 @@ class Seed(record(
     price_per_two_fifty = _PriceComputer('two hundred fifty', 'dollars_per_two_fifty', None, None, 250)
     price_per_five_hundred = _PriceComputer('five hundred', 'dollars_per_five_hundred', None, None, 500)
     price_per_thousand = _PriceComputer('thousand', 'dollars_per_thousand', None, None, 1000)
+    price_per_five_thousand = _PriceComputer('five thousand', 'dollars_per_five_thousand', None, None, 5000)
 
     seeds_per_quarter_oz = _AttributeMultiple('seeds_per_oz', 0.25)
     seeds_per_half_oz = _AttributeMultiple('seeds_per_oz', 0.5)
@@ -485,7 +496,10 @@ class Seed(record(
             return MissingInformation("Prices for %s/%s unavailable" % (
                     self.crop.name, self.variety))
 
-        minimum_row_feet = self.crop.rows_per_bed * bed_feet
+        # How much excess to build in to the order
+        minimum_overrun = 0.3
+
+        minimum_row_feet = self.crop.rows_per_bed * bed_feet * (1 + minimum_overrun)
 
         # Put prices for all products with known row foot coverage first, since
         # we can figure out more about those.  After that, sort by cost.
@@ -511,8 +525,10 @@ class Seed(record(
         determined by looking at the total bed feet for the crop and dividing it
         up amongst all of the varieties being planted.
         """
-        # Just divide evenly for now - change to use weights soon
-        return float(self.crop.bed_feet) / len(self.crop.varieties)
+        total_weight = sum(seed.parts_per_crop for seed in self.crop.varieties)
+        my_weight = self.parts_per_crop
+        my_proportion = float(my_weight) / float(total_weight)
+        return float(self.crop.bed_feet) * my_proportion
 
 
 
@@ -558,35 +574,37 @@ def load_seeds(path, crops):
     for row in data:
         if not row[0]:
             continue
-        crop = crops[row[0]]
+        nextField = iter(row).next
+
+        crop = crops[nextField()]
         seed = Seed(
-            crop=crop, variety=row[1],
-            greenhouse_days=parse_or_default(int, row[2], None),
-            beginning_of_season=parse_or_default(parse_date, row[3], None),
-            maturity_days=parse_or_default(int, row[4], None),
-            end_of_season=parse_or_default(parse_date, row[5], None),
-            seeds_per_packet=parse_or_default(int, row[6], None),
-            row_foot_per_packet=parse_or_default(float, row[7], None),
-            seeds_per_oz=parse_or_default(float, row[8], None),
-            dollars_per_packet=parse_or_default(float, row[9], None),
-            dollars_per_hundred=parse_or_default(float, row[10], None),
-            dollars_per_two_fifty=parse_or_default(float, row[11], None),
-            dollars_per_five_hundred=parse_or_default(float, row[12], None),
-            dollars_per_thousand=parse_or_default(float, row[13], None),
-            dollars_per_thousand_min_five=parse_or_default(float, row[14], None),
-            dollars_per_quarter_oz=parse_or_default(float, row[15], None),
-            dollars_per_half_oz=parse_or_default(float, row[16], None),
-            dollars_per_oz=parse_or_default(float, row[17], None),
-            dollars_per_eighth_lb=parse_or_default(float, row[18], None),
-            dollars_per_quarter_lb=parse_or_default(float, row[19], None),
-            dollars_per_half_lb=parse_or_default(float, row[20], None),
-            dollars_per_lb=parse_or_default(float, row[21], None),
-            row_foot_per_oz=parse_or_default(float, row[22], None),
-            dollars_per_mini=parse_or_default(float, row[23], None),
-            seeds_per_mini=parse_or_default(int, row[24], None),
-            row_foot_per_mini=parse_or_default(float, row[25], None),
-            harvest_duration=parse_or_default(int, row[26], None),
-            notes=row[27],
+            crop=crop, variety=nextField(), parts_per_crop=parse_or_default(int, nextField(), 1),
+            product_id=nextField(), greenhouse_days=parse_or_default(int, nextField(), None),
+            beginning_of_season=parse_or_default(parse_date, nextField(), None),
+            maturity_days=parse_or_default(int, nextField(), None),
+            end_of_season=parse_or_default(parse_date, nextField(), None),
+            seeds_per_packet=parse_or_default(int, nextField(), None),
+            row_foot_per_packet=parse_or_default(float, nextField(), None),
+            seeds_per_oz=parse_or_default(float, nextField(), None),
+            dollars_per_packet=parse_or_default(float, nextField(), None),
+            dollars_per_hundred=parse_or_default(float, nextField(), None),
+            dollars_per_two_fifty=parse_or_default(float, nextField(), None),
+            dollars_per_five_hundred=parse_or_default(float, nextField(), None),
+            dollars_per_thousand=parse_or_default(float, nextField(), None),
+            dollars_per_five_thousand=parse_or_default(lambda s: float(s) * 5, nextField(), None),
+            dollars_per_quarter_oz=parse_or_default(float, nextField(), None),
+            dollars_per_half_oz=parse_or_default(float, nextField(), None),
+            dollars_per_oz=parse_or_default(float, nextField(), None),
+            dollars_per_eighth_lb=parse_or_default(float, nextField(), None),
+            dollars_per_quarter_lb=parse_or_default(float, nextField(), None),
+            dollars_per_half_lb=parse_or_default(float, nextField(), None),
+            dollars_per_lb=parse_or_default(float, nextField(), None),
+            row_foot_per_oz=parse_or_default(float, nextField(), None),
+            dollars_per_mini=parse_or_default(float, nextField(), None),
+            seeds_per_mini=parse_or_default(int, nextField(), None),
+            row_foot_per_mini=parse_or_default(float, nextField(), None),
+            harvest_duration=parse_or_default(int, nextField(), None),
+            notes=nextField(),
             )
         seeds.append(seed)
         crop.varieties.append(seed)
@@ -625,11 +643,16 @@ def make_order(crops, seeds):
         if not crop.total_yield:
             continue
         for seed in varieties:
-            order = seed.order(seed.bed_feet)
-            if isinstance(order, MissingInformation):
-                print order.message
+            bed_feet = seed.bed_feet
+            if bed_feet > 0:
+                order = seed.order(bed_feet)
+                if isinstance(order, MissingInformation):
+                    print order.message
+                else:
+                    yield order
             else:
-                yield order
+                print 'Not ordering %s (%s) because it has no bed feet allocated.' % (
+                    seed.variety, seed.crop.name)
 
 
 def generate_seed_order(crops, seeds):
