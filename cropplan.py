@@ -115,10 +115,14 @@ def summarize_crops_graph(crops):
 
 def summarize_order(order):
     for item in order:
-        print '%(variety)s (%(crop)s - Product ID %(product_id)s) $%(cost)5.2f' % dict(
+        total_yield = item.seed.crop.total_yield
+        if total_yield == 0:
+            cost = '(unknown yield)'
+        else:
+            cost = '%5.2f' % (item.cost() / total_yield,)
+        print '%(variety)s (%(crop)s - Product ID %(product_id)s) $%(cost)s' % dict(
             variety=item.seed.variety, crop=item.seed.crop.name,
-            cost=item.cost() / item.seed.crop.total_yield,
-            product_id=item.seed.product_id)
+            cost=cost, product_id=item.seed.product_id)
 
 
 
@@ -651,8 +655,6 @@ class Order(record('seed row_feet price')):
 def make_order(crops, seeds):
     key = lambda seed: seed.crop
     for (crop, varieties) in groupby(sorted(seeds, key=key), key):
-        if not crop.total_yield:
-            continue
         for seed in varieties:
             bed_feet = seed.bed_feet
             if bed_feet > 0:
