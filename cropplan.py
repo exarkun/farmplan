@@ -1,8 +1,32 @@
+# Copyright Jean-Paul Calderone.  See LICENSE file for details.
+
+"""
+Tools for crop planning and scheduling.
+
+TODO: Describe options and general usage
+
+TODO: Describe data (csv) format
+
+TODO: Describe text and plot outputs
+
+TODO: Describe seed ordering
+
+TODO: Describe scheduling plain text and ical output
+
+TODO: Describe resource (flats) usage
+
+TODO: Describe yield estimation
+
+TODO: Clean up extra text output on stdout
+"""
+
 from csv import reader
 from sys import argv
 from math import ceil
 from itertools import groupby
 from datetime import date, datetime, timedelta
+
+from zope.interface import Attribute, Interface, implements
 
 from dateutil.rrule import SU
 
@@ -14,6 +38,43 @@ from twisted.python.usage import Options
 from epsilon.structlike import record
 
 YEAR = 2012
+
+class ITask(Interface):
+    """
+    Represent an activity that needs to be performed, probably by a person.
+    """
+    seed = Attribute(
+        """
+        A L{Seed} instance indicating what seed variety this task is most
+        directly related to.
+        """)
+
+
+    when = Attribute(
+        """
+        A L{datetime.datetime} instance giving the time at which point this task
+        is to be done.
+        """)
+
+
+    duration = Attribute(
+        """
+        A L{datetime.timedelta} instance giving an estimate of how long this
+        task will take to complete.
+        """)
+
+
+    def split(duration):
+        """
+        Divide this task up into two new tasks which are identical except for
+        the amount of work they represent.  Taken together, the two new tasks
+        should be equivalent to this task.  One of the new tasks is guaranteed
+        not to take longer than C{duration}.
+
+        @return: A C{tuple} of two L{ITask} providers.
+        """
+
+
 
 def make_coercer(valid):
     def coerce(value):
@@ -709,6 +770,20 @@ class _ByTheFootTask(object):
         return self._time_cost * int(ceil(self.quantity))
 
 
+    def split(self, duration):
+        """
+        Create two new tasks, dividing the footage between them so that one
+        comes in under the requested duration.
+        """
+        ratio = duration.total_seconds() / self.duration.total_seconds()
+        quantity = int(ratio * self.quantity)
+        remaining = self.quantity - quantity
+        return (
+            self.__class__(self.when, self.seed, quantity),
+            self.__class__(self.when, self.seed, remaining),
+            )
+
+
 
 class _DayTask(object):
     @property
@@ -744,6 +819,8 @@ class _FlatsTask(object):
 
 
 class SeedFlats(record('when seed quantity'), _ByTheFootTask, _DayTask, _Pretty, _FlatsTask):
+    implements(ITask)
+
     # Time cost in seconds for seeding one bed foot into a flat
     # XXX Should be based on what's being seeded due to spacing differences
     _time_cost = timedelta(minutes=2)
@@ -758,6 +835,8 @@ class SeedFlats(record('when seed quantity'), _ByTheFootTask, _DayTask, _Pretty,
 
 
 class DirectSeed(record('when seed quantity'), _ByTheFootTask, _DayTask, _Pretty):
+    implements(ITask)
+
     # Time cost for direct seeding one bed foot
     # XXX I totally made this up
     _time_cost = timedelta(seconds=30)
@@ -770,6 +849,8 @@ class DirectSeed(record('when seed quantity'), _ByTheFootTask, _DayTask, _Pretty
 
 
 class BedPreparation(record('when seed quantity'), _ByTheFootTask, _DayTask, _Pretty):
+    implements(ITask)
+
     # XXX Totally made up; what is bed preparation, even?
     _time_cost = timedelta(minutes=2)
 
@@ -781,6 +862,8 @@ class BedPreparation(record('when seed quantity'), _ByTheFootTask, _DayTask, _Pr
 
 
 class Weed(record('when seed quantity'), _ByTheFootTask, _DayTask, _Pretty):
+    implements(ITask)
+
     # Time cost for weeding one bed foot of the some crop
     _time_cost = timedelta(minutes=10)
 
@@ -792,6 +875,8 @@ class Weed(record('when seed quantity'), _ByTheFootTask, _DayTask, _Pretty):
 
 
 class Transplant(record('when seed quantity'), _ByTheFootTask, _DayTask, _Pretty, _FlatsTask):
+    implements(ITask)
+
     _time_cost = timedelta(minutes=1)
 
     use_or_disuse = -1
@@ -804,6 +889,8 @@ class Transplant(record('when seed quantity'), _ByTheFootTask, _DayTask, _Pretty
 
 
 class Harvest(record('when seed quantity'), _ByTheFootTask, _DayTask, _Pretty):
+    implements(ITask)
+
     _time_cost = timedelta(minutes=2)
 
     def summarize(self):
