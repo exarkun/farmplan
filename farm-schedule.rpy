@@ -6,9 +6,10 @@ from StringIO import StringIO
 from twisted.python.filepath import FilePath
 from twisted.web.resource import Resource
 
-from cropplan import load_crops, load_seeds, create_tasks, schedule_tasks
+from cropplan import (
+     load_crops, load_seeds, create_tasks, schedule_tasks, schedule_ical)
 
-HERE = FilePath(_).realpath().parent()
+HERE = FilePath(__file__).realpath().parent()
 CROP_PLAN = HERE.child('2012 Crop Plan.csv')
 CROP_VARIETIES = HERE.child('2012 Crop Plan - Varieties.csv')
 
@@ -27,7 +28,7 @@ class FarmSchedule(Resource):
             schedule_ical(schedule)
         finally:
             sys.stdout = stdout
-        request.responseHeaders.setRawHeader('content-type', ['text/calendar'])
+        request.setHeader('content-type', 'text/calendar')
         return output.getvalue()
 
 resource = FarmSchedule()
