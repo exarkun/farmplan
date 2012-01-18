@@ -34,10 +34,19 @@ from vobject import iCalendar
 
 from twisted.python.filepath import FilePath
 from twisted.python.usage import Options
+from twisted.python.util import FancyEqMixin
 
 from epsilon.structlike import record
 
 YEAR = 2012
+
+
+class UnsplittableTask(Exception):
+    """
+    An attempt was made to split a task which cannot be sub-divided.
+    """
+
+
 
 class ITask(Interface):
     """
@@ -73,6 +82,11 @@ class ITask(Interface):
 
         @return: A C{tuple} of two L{ITask} providers.
         """
+
+
+
+class ComparableRecord(FancyEqMixin, object):
+    compareAttributes = property(lambda self: self.__names__)
 
 
 
@@ -278,7 +292,8 @@ class Crop(record(
         'fresh_eating_lbs fresh_eating_weeks '
         'storage_eating_lbs storage_eating_weeks '
         'variety harvest_weeks row_feet_per_oz_seed '
-        'yield_lbs_per_bed_foot rows_per_bed in_row_spacing _bed_feet')):
+        'yield_lbs_per_bed_foot rows_per_bed in_row_spacing _bed_feet'),
+           ComparableRecord):
     """
     @ivar name: The general name of this crop (eg carrots, beets)
 
@@ -404,7 +419,8 @@ class Seed(record(
         'dollars_per_five_hundred dollars_per_thousand dollars_per_five_thousand dollars_per_quarter_oz '
         'dollars_per_half_oz dollars_per_oz dollars_per_eighth_lb dollars_per_quarter_lb '
         'dollars_per_half_lb dollars_per_lb row_foot_per_oz dollars_per_mini '
-        'seeds_per_mini row_foot_per_mini harvest_duration notes')):
+        'seeds_per_mini row_foot_per_mini harvest_duration notes'),
+           ComparableRecord):
     """
     @ivar crop: The name of the crop - matches the name of one of the L{Crop}
         instances.
@@ -797,7 +813,9 @@ class _Pretty(object):
 
 
 # record needs better support for inheritance
-class FinishPlanning(record('seed'), _DayTask, _Pretty):
+class FinishPlanning(record('seed'), _DayTask, _Pretty, ComparableRecord):
+    implements(ITask)
+
     # Get this to sort first
     when = datetime(YEAR, 1, 1, 0, 0, 0)
 
@@ -807,6 +825,10 @@ class FinishPlanning(record('seed'), _DayTask, _Pretty):
     def summarize(self):
         return 'Finish planning %(variety)s (%(crop)s)' % dict(
             variety=self.seed.variety, crop=self.seed.crop.name)
+
+
+    def split(self, duration):
+        raise UnsplittableTask()
 
 
 
@@ -899,7 +921,11 @@ class Harvest(record('when seed quantity'), _ByTheFootTask, _DayTask, _Pretty):
 
 
 
-def schedule_planting(crops, seeds):
+def create_tasks(crops, seeds):
+    pass
+
+
+def schedule_tasks(crops, seeds):
     # naive approach - schedule everything as early as possible
     schedule = []
     epoch = datetime(year=YEAR, month=1, day=1, hour=0, minute=0, second=0)
@@ -1027,7 +1053,7 @@ def main():
 
     options['order'](order)
 
-    schedule = schedule_planting(crops, seeds)
+    schedule = schedule_tasks(crops, seeds)
     display_schedule = options['schedule']
     if display_schedule is not None:
         display_schedule(schedule)
