@@ -31,4 +31,5 @@ class FarmSchedule(Resource):
         request.setHeader('content-type', 'text/calendar')
         return output.getvalue()
 
-resource = FarmSchedule()
+resource = Resource()
+resource.putChild("farm-schedule.ics", FarmSchedule())
