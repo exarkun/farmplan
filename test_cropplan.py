@@ -214,17 +214,30 @@ class FinishPlanningTests(TestCase, TaskTestsMixin, ComparisonTestsMixin):
 
 
 
-class SeedFlatsTests(TestCase, TaskTestsMixin):
+class SeedFlatsTests(TestCase, TaskTestsMixin, ComparisonTestsMixin):
     """
     Tests for L{SeedFlats}, representing a task for sowing seeds of a particular
     variety into flats.
     """
+    def setUp(self):
+        self.crop = dummyCrop()
+        self.seed = dummySeed(self.crop)
+
+
     def createTask(self):
         """
         Create a new L{SeedFlats} task using an arbitrary date, seed variety,
         and quantity.
         """
         return SeedFlats(datetime(2000, 6, 12, 8, 0, 0), object(), 50)
+
+
+    def createFirst(self):
+        return SeedFlats(datetime(2001, 6, 1), self.seed, 25)
+
+
+    def createSecond(self):
+        return SeedFlats(datetime(2001, 6, 2), self.seed, 25)
 
 
 
@@ -336,6 +349,53 @@ class ScheduleTasksTests(TestCase):
     """
     def test_eagerScheduling(self):
         """
-        When there is no contention amongst necessary tasks, L{schedule_tasks} returns 
+        When there is no contention amongst necessary tasks, L{schedule_tasks}
+        leaves the scheduling of tasks alone.
         """
-        self.fail("write me")
+        crop = dummyCrop()
+        seed = dummySeed(crop)
+        tasks = [SeedFlats(datetime(2012, 5, 1), seed, 10)]
+        schedule = schedule_tasks(tasks)
+        # Compare against a new copy, to ensure that no unexpected mutation of
+        # the SeedFlats instance happened.
+        self.assertEqual(
+            [SeedFlats(datetime(2012, 5, 1, 8, 0, 0), seed, 10)],
+            schedule)
+
+
+    def test_delayConflicting(self):
+        """
+        When there are multiple tasks scheduled to happen at the same time,
+        L{schedule_tasks} pushes one of them back so it begins after the other
+        one ends.
+        """
+        crop = dummyCrop()
+        seedA = dummySeed(crop)
+        seedB = dummySeed(crop)
+        tasks = [
+            SeedFlats(datetime(2012, 5, 1), seedA, 10),
+            SeedFlats(datetime(2012, 5, 1), seedB, 10)]
+        schedule = schedule_tasks(tasks)
+        self.assertEqual(
+            [SeedFlats(datetime(2012, 5, 1, 8, 0, 0), seedA, 10),
+             SeedFlats(datetime(2012, 5, 1, 8, 20, 0), seedB, 10)],
+            schedule)
+
+
+    def test_postponeConflicting(self):
+        """
+        When a task must be delayed but there are not enough hours remaining in
+        the day on which it was originally scheduled, it is moved to the
+        beginning of the following day.
+        """
+        crop = dummyCrop()
+        seedA = dummySeed(crop)
+        seedB = dummySeed(crop)
+        tasks = [
+            SeedFlats(datetime(2012, 5, 1), seedA, 90),
+            SeedFlats(datetime(2012, 5, 1), seedB, 90)]
+        schedule = schedule_tasks(tasks)
+        self.assertEqual(
+            [SeedFlats(datetime(2012, 5, 1, 8, 0, 0), seedA, 90),
+             SeedFlats(datetime(2012, 5, 2, 8, 0, 0), seedB, 90)],
+            schedule)

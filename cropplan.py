@@ -840,7 +840,7 @@ class _FlatsTask(object):
 
 
 
-class SeedFlats(record('when seed quantity'), _ByTheFootTask, _DayTask, _Pretty, _FlatsTask):
+class SeedFlats(record('when seed quantity'), _ByTheFootTask, _DayTask, _Pretty, _FlatsTask, ComparableRecord):
     implements(ITask)
 
     # Time cost in seconds for seeding one bed foot into a flat
@@ -958,7 +958,7 @@ def create_tasks(crops, seeds):
 
 
 
-def schedule_tasks(crops, seeds, tasks):
+def schedule_tasks(tasks):
     # Slightly less naive: now spread things out, if there is too much work
     # being done on any particular day.
 
@@ -1000,11 +1000,9 @@ def schedule_tasks(crops, seeds, tasks):
             if schedDiff:
                 # The event got moved from its originally scheduled time.  Push
                 # back any subsequent events that depend on it.
-                print 'Moved', event, 'from', event.when, 'to', event.when + schedDiff
                 event.when += schedDiff
                 for dep in tasks:
                     if dep.seed is event.seed:
-                        print dep, 'depends on', event, '; moving back', schedDiff
                         dep.when += schedDiff
 
             hours += event.duration
@@ -1054,7 +1052,7 @@ def main():
     options['order'](order)
 
     tasks = create_tasks(crops, seeds)
-    schedule = schedule_tasks(crops, seeds, tasks)
+    schedule = schedule_tasks(tasks)
     display_schedule = options['schedule']
     if display_schedule is not None:
         display_schedule(schedule)
