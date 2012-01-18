@@ -241,17 +241,30 @@ class SeedFlatsTests(TestCase, TaskTestsMixin, ComparisonTestsMixin):
 
 
 
-class DirectSeedTests(TestCase, TaskTestsMixin):
+class DirectSeedTests(TestCase, TaskTestsMixin, ComparisonTestsMixin):
     """
     Tests for L{DirectSeed}, representing a task for sowing seeds of a
     particular variety directly into a bed.
     """
+    def setUp(self):
+        self.crop = dummyCrop()
+        self.seed = dummySeed(self.crop)
+
+
     def createTask(self):
         """
         Create a new L{DirectSeed} task using an arbitrary date, seed variety,
         and quantity.
         """
         return DirectSeed(datetime(2001, 7, 2, 9, 30, 0), object(), 10)
+
+
+    def createFirst(self):
+        return DirectSeed(datetime(2001, 6, 1), self.seed, 25)
+
+
+    def createSecond(self):
+        return DirectSeed(datetime(2001, 6, 2), self.seed, 25)
 
 
 

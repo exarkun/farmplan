@@ -856,7 +856,7 @@ class SeedFlats(record('when seed quantity'), _ByTheFootTask, _DayTask, _Pretty,
 
 
 
-class DirectSeed(record('when seed quantity'), _ByTheFootTask, _DayTask, _Pretty):
+class DirectSeed(record('when seed quantity'), _ByTheFootTask, _DayTask, _Pretty, ComparableRecord):
     implements(ITask)
 
     # Time cost for direct seeding one bed foot
