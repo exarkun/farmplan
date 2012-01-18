@@ -1060,9 +1060,12 @@ def summarize_yields(schedule):
 
 
 
-def main():
+def main(args=None):
+    if args is None:
+        args = argv[1:]
+
     options = CropPlanOptions()
-    options.parseOptions(argv[1:])
+    options.parseOptions(args)
 
     crops = load_crops(options['crop-path'])
     seeds = load_seeds(options['seed-path'], crops)
