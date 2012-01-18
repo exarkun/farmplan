@@ -465,3 +465,19 @@ class ScheduleTasksTests(TestCase):
             [SeedFlats(datetime(2012, 5, 1, 8, 0, 0), seedA, 90),
              SeedFlats(datetime(2012, 5, 2, 8, 0, 0), seedB, 90)],
             schedule)
+
+
+    def test_splitLarge(self):
+        """
+        If a task takes more time than there is left in the day on which it is
+        scheduled, it is split into two tasks and the remainder is moved to the
+        next day.
+        """
+        crop = dummyCrop()
+        seed = dummySeed(crop)
+        tasks = [SeedFlats(datetime(2012, 5, 1), seed, 170)]
+        schedule = schedule_tasks(tasks)
+        self.assertEqual(
+            [SeedFlats(datetime(2012, 5, 1, 8, 0, 0), seed, 90),
+             SeedFlats(datetime(2012, 5, 2, 8, 0, 0), seed, 80)],
+            schedule)

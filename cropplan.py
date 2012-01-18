@@ -965,6 +965,11 @@ def schedule_tasks(tasks):
     # The maximum number of hours of work to schedule per day
     maxManHours = timedelta(hours=3)
 
+    # The maximum amount of time to waste at the end of a day (in other words,
+    # the smallest piece of a larger task to break off and schedule at the end
+    # of a day instead of moving the entire task to the next day).
+    endOfDayWaste = timedelta(minutes=30)
+
     # The time of day at which work starts
     startOfDay = timedelta(hours=8)
 
@@ -992,7 +997,25 @@ def schedule_tasks(tasks):
         # Now schedule some jobs for today.  This is naive, it just schedules
         # jobs in order until one goes over the daily hour limit.
         hours = timedelta(hours=0)
-        while available and hours + available[0].duration <= maxManHours:
+        while True:
+            if not available:
+                # All done
+                break
+
+            if hours + available[0].duration > maxManHours:
+                # This task does not fit in this day as is.
+
+                if maxManHours > hours + endOfDayWaste:
+                    # There is enough time left today to split the task up.
+                    replacements = available[0].split(maxManHours)
+                    # Replace the original with the (two) split up tasks.  Then
+                    # fall through to the code for handling available[0] below.
+                    available[:1] = replacements
+                else:
+                    # There isn't enough time left today to bother, move on to
+                    # the next day.
+                    break
+
             event = available.pop(0)
             manHourLimitSchedule.append(event)
             schedDiff = day - event.date
