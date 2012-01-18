@@ -870,7 +870,7 @@ class DirectSeed(record('when seed quantity'), _ByTheFootTask, _DayTask, _Pretty
 
 
 
-class BedPreparation(record('when seed quantity'), _ByTheFootTask, _DayTask, _Pretty):
+class BedPreparation(record('when seed quantity'), _ByTheFootTask, _DayTask, _Pretty, ComparableRecord):
     implements(ITask)
 
     # XXX Totally made up; what is bed preparation, even?
@@ -883,7 +883,7 @@ class BedPreparation(record('when seed quantity'), _ByTheFootTask, _DayTask, _Pr
 
 
 
-class Weed(record('when seed quantity'), _ByTheFootTask, _DayTask, _Pretty):
+class Weed(record('when seed quantity'), _ByTheFootTask, _DayTask, _Pretty, ComparableRecord):
     implements(ITask)
 
     # Time cost for weeding one bed foot of the some crop
@@ -896,7 +896,7 @@ class Weed(record('when seed quantity'), _ByTheFootTask, _DayTask, _Pretty):
 
 
 
-class Transplant(record('when seed quantity'), _ByTheFootTask, _DayTask, _Pretty, _FlatsTask):
+class Transplant(record('when seed quantity'), _ByTheFootTask, _DayTask, _Pretty, _FlatsTask, ComparableRecord):
     implements(ITask)
 
     _time_cost = timedelta(minutes=1)
@@ -910,7 +910,7 @@ class Transplant(record('when seed quantity'), _ByTheFootTask, _DayTask, _Pretty
 
 
 
-class Harvest(record('when seed quantity'), _ByTheFootTask, _DayTask, _Pretty):
+class Harvest(record('when seed quantity'), _ByTheFootTask, _DayTask, _Pretty, ComparableRecord):
     implements(ITask)
 
     _time_cost = timedelta(minutes=2)

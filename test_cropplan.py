@@ -268,12 +268,17 @@ class DirectSeedTests(TestCase, TaskTestsMixin, ComparisonTestsMixin):
 
 
 
-class BedPreparationTests(TestCase, TaskTestsMixin):
+class BedPreparationTests(TestCase, TaskTestsMixin, ComparisonTestsMixin):
     """
     Tests for L{BedPreparation}, representing a task for preparing bed space for
     seeds of a particular variety (without specifying the details of that
     preparation; it may be amending, weeding, etc).
     """
+    def setUp(self):
+        self.crop = dummyCrop()
+        self.seed = dummySeed(self.crop)
+
+
     def createTask(self):
         """
         Create a new L{BedPreparation} task using an arbitrary date, seed
@@ -282,12 +287,25 @@ class BedPreparationTests(TestCase, TaskTestsMixin):
         return BedPreparation(datetime(2002, 5, 25, 10, 15, 0), object(), 25)
 
 
+    def createFirst(self):
+        return BedPreparation(datetime(2003, 5, 16, 9, 0, 0), self.seed, 25)
 
-class WeedTests(TestCase, TaskTestsMixin):
+
+    def createSecond(self):
+        return BedPreparation(datetime(2003, 5, 16, 9, 0, 0), self.seed, 50)
+
+
+
+class WeedTests(TestCase, TaskTestsMixin, ComparisonTestsMixin):
     """
     Tests for L{Weed}, representing a task for weeding bed space already planted
     in a particular variety.
     """
+    def setUp(self):
+        self.crop = dummyCrop()
+        self.seed = dummySeed(self.crop)
+
+
     def createTask(self):
         """
         Create a new L{Weed} task using an arbitrary date, seed variety, and
@@ -296,12 +314,25 @@ class WeedTests(TestCase, TaskTestsMixin):
         return Weed(datetime(2003, 8, 15, 11, 0, 0), object(), 50)
 
 
+    def createFirst(self):
+        return Weed(datetime(2001, 6, 1), self.seed, 25)
 
-class TransplantTests(TestCase, TaskTestsMixin):
+
+    def createSecond(self):
+        return Weed(datetime(2001, 6, 1), self.seed, 75)
+
+
+
+class TransplantTests(TestCase, TaskTestsMixin, ComparisonTestsMixin):
     """
     Tests for L{Transplant}, representing a task for transplanting seedlings of a
     particular variety from flats into bed space.
     """
+    def setUp(self):
+        self.crop = dummyCrop()
+        self.seed = dummySeed(self.crop)
+
+
     def createTask(self):
         """
         Create a new L{Transplant} task using an arbitrary date, seed variety,
@@ -310,18 +341,40 @@ class TransplantTests(TestCase, TaskTestsMixin):
         return Transplant(datetime(2004, 7, 1, 8, 0, 0), object(), 15)
 
 
+    def createFirst(self):
+        return Transplant(datetime(2001, 6, 1), self.seed, 25)
 
-class HarvestTests(TestCase, TaskTestsMixin):
+
+    def createSecond(self):
+        return Transplant(datetime(2001, 6, 1), self.seed, 75)
+
+
+
+class HarvestTests(TestCase, TaskTestsMixin, ComparisonTestsMixin):
     """
     Tests for L{Harvest}, representing a task for harvesting produce from bed
     space planted in particular variety.
     """
+    def setUp(self):
+        self.crop = dummyCrop()
+        self.seed = dummySeed(self.crop)
+
+
     def createTask(self):
         """
         Create a new L{Harvest} task using an arbitrary date, seed variety, and
         quantity.
         """
         return Harvest(datetime(2005, 9, 15, 9, 0, 0), object(), 25)
+
+
+    def createFirst(self):
+        return Harvest(datetime(2001, 6, 1), self.seed, 25)
+
+
+    def createSecond(self):
+        return Harvest(datetime(2001, 6, 1), self.seed, 75)
+
 
 
 class CreateTasksTests(TestCase):
