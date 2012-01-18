@@ -481,3 +481,24 @@ class ScheduleTasksTests(TestCase):
             [SeedFlats(datetime(2012, 5, 1, 8, 0, 0), seed, 90),
              SeedFlats(datetime(2012, 5, 2, 8, 0, 0), seed, 80)],
             schedule)
+
+
+    def test_splitLargeNotFirst(self):
+        """
+        If a task must be split over two days and it is not the first task done
+        on the first day, only the time remaining in the first day is allocated
+        to the first part of the split up task.  In other words, the total
+        amount of time for tasks already done on a day and the amount of time
+        for a piece of a split task still do not exceed the daily hour limit.
+        """
+        crop = dummyCrop()
+        seedA = dummySeed(crop)
+        seedB = dummySeed(crop)
+        tasks = [SeedFlats(datetime(2012, 5, 1), seedA, 60),
+                 SeedFlats(datetime(2012, 5, 1), seedB, 65)]
+        schedule = schedule_tasks(tasks)
+        self.assertEqual(
+            [SeedFlats(datetime(2012, 5, 1, 8, 0, 0), seedA, 60),
+             SeedFlats(datetime(2012, 5, 1, 10, 0, 0), seedB, 30),
+             SeedFlats(datetime(2012, 5, 2, 8, 0, 0), seedB, 35)],
+            schedule)

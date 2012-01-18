@@ -1006,7 +1006,7 @@ def schedule_tasks(tasks):
 
                 if maxManHours > hours + endOfDayWaste:
                     # There is enough time left today to split the task up.
-                    replacements = available[0].split(maxManHours)
+                    replacements = available[0].split(maxManHours - hours)
                     # Replace the original with the (two) split up tasks.  Then
                     # fall through to the code for handling available[0] below.
                     available[:1] = replacements
