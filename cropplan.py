@@ -32,6 +32,7 @@ from dateutil.rrule import SU
 
 from vobject import iCalendar
 
+from twisted.python.log import msg
 from twisted.python.filepath import FilePath
 from twisted.python.usage import Options
 from twisted.python.util import FancyEqMixin
@@ -189,6 +190,24 @@ def summarize_crops_graph(crops):
 
 
 def summarize_order(order):
+    order_total = 0.0
+    ideal_total = 0.0
+
+    for item in order:
+
+        cost = item.cost()
+        order_total += cost
+        ideal_total += cost / item.excess()
+
+        bed_feet = item.row_feet / item.seed.crop.rows_per_bed
+        print (
+            'Plant %(bed_feet)s feet of %(variety)s (%(crop)s - Product ID %(product_id)s) '
+            'at $%(cost)5.2f (ideally %(ideal)5.2f; %(buy)5.2f%%)' % {
+                'bed_feet': bed_feet, 'variety': item.seed.variety,
+                'crop': item.seed.crop.name, 'cost': cost,
+                'ideal': cost / item.excess(), 'buy': item.excess() * 100,
+                'product_id': item.seed.product_id})
+
     for item in order:
         total_yield = item.seed.crop.total_yield
         if total_yield == 0:
@@ -198,6 +217,15 @@ def summarize_order(order):
         print '%(variety)s (%(crop)s - Product ID %(product_id)s) $%(cost)s' % dict(
             variety=item.seed.variety, crop=item.seed.crop.name,
             cost=cost, product_id=item.seed.product_id)
+
+    for item in order:
+        print '\t$%(cost)5.2f %(count)d %(kind)s of %(variety)s (%(crop)s - Product ID %(product_id)s)' % dict(
+            cost=item.cost(), count=item.count, kind=item.price.kind,
+            variety=item.seed.variety, crop=item.seed.crop.name,
+            product_id=item.seed.product_id)
+    print 'Total\t$%(cost)5.2f (ideal $%(ideal)5.2f)' % dict(
+        cost=order_total, ideal=ideal_total)
+    return order
 
 
 
@@ -737,44 +765,15 @@ def make_order(crops, seeds):
             if bed_feet > 0:
                 order = seed.order(bed_feet)
                 if isinstance(order, MissingInformation):
-                    print order.message
+                    msg(order.message)
                 else:
                     for o in order:
                         yield o
             else:
-                print 'Not ordering %s (%s) because it has no bed feet allocated.' % (
-                    seed.variety, seed.crop.name)
-
-
-def generate_seed_order(crops, seeds):
-    order = list(make_order(crops, seeds))
-
-    order_total = 0.0
-    ideal_total = 0.0
-
-    for item in order:
-
-        cost = item.cost()
-        order_total += cost
-        ideal_total += cost / item.excess()
-
-        bed_feet = item.row_feet / item.seed.crop.rows_per_bed
-        print (
-            'Plant %(bed_feet)s feet of %(variety)s (%(crop)s - Product ID %(product_id)s) '
-            'at $%(cost)5.2f (ideally %(ideal)5.2f; %(buy)5.2f%%)' % {
-                'bed_feet': bed_feet, 'variety': item.seed.variety,
-                'crop': item.seed.crop.name, 'cost': cost,
-                'ideal': cost / item.excess(), 'buy': item.excess() * 100,
-                'product_id': item.seed.product_id})
-
-    for item in order:
-        print '\t$%(cost)5.2f %(count)d %(kind)s of %(variety)s (%(crop)s - Product ID %(product_id)s)' % dict(
-            cost=item.cost(), count=item.count, kind=item.price.kind,
-            variety=item.seed.variety, crop=item.seed.crop.name,
-            product_id=item.seed.product_id)
-    print 'Total\t$%(cost)5.2f (ideal $%(ideal)5.2f)' % dict(
-        cost=order_total, ideal=ideal_total)
-    return order
+                message = (
+                    'Not ordering %(variety)s (%(name)s) because it has no bed'
+                    'feet allocated.')
+                msg(format=message % dict(variety=seed.variety, name=seed.crop.name))
 
 
 
@@ -1063,14 +1062,14 @@ def summarize_yields(schedule):
 
 def main():
     options = CropPlanOptions()
-    options.parseOptions()
+    options.parseOptions(argv[1:])
 
     crops = load_crops(options['crop-path'])
     seeds = load_seeds(options['seed-path'], crops)
 
     options['crops'](crops)
 
-    order = generate_seed_order(crops, seeds)
+    order = make_order(crops, seeds)
 
     options['order'](order)
 
