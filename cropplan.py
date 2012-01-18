@@ -922,20 +922,16 @@ class Harvest(record('when seed quantity'), _ByTheFootTask, _DayTask, _Pretty):
 
 
 def create_tasks(crops, seeds):
-    pass
-
-
-def schedule_tasks(crops, seeds):
     # naive approach - schedule everything as early as possible
-    schedule = []
+    tasks = []
     epoch = datetime(year=YEAR, month=1, day=1, hour=0, minute=0, second=0)
     for seed in seeds:
         if seed.beginning_of_season is None or seed.greenhouse_days is None:
-            schedule.append(FinishPlanning(seed))
+            tasks.append(FinishPlanning(seed))
             continue
 
         # Prep the bed before planting in it
-        schedule.append(BedPreparation(
+        tasks.append(BedPreparation(
                 epoch + timedelta(days=seed.beginning_of_season - 14), seed,
                 seed.bed_feet))
 
@@ -943,22 +939,26 @@ def schedule_tasks(crops, seeds):
             # It starts in the greenhouse
             greenhouse_day = timedelta(
                 days=seed.beginning_of_season - seed.greenhouse_days)
-            schedule.append(SeedFlats(
+            tasks.append(SeedFlats(
                     epoch + greenhouse_day, seed, seed.bed_feet))
-            schedule.append(Transplant(
+            tasks.append(Transplant(
                     epoch + timedelta(days=seed.beginning_of_season), seed,
                     seed.bed_feet))
         else:
-            schedule.append(DirectSeed(
+            tasks.append(DirectSeed(
                     epoch + timedelta(days=seed.beginning_of_season), seed,
                     seed.bed_feet))
 
         harvest_day = timedelta(
             days=seed.beginning_of_season + seed.maturity_days - seed.greenhouse_days)
-        schedule.append(Harvest(epoch + harvest_day, seed, seed.bed_feet))
+        tasks.append(Harvest(epoch + harvest_day, seed, seed.bed_feet))
 
-    schedule.sort(key=lambda event: event.when)
+    tasks.sort(key=lambda event: event.when)
+    return tasks
 
+
+
+def schedule_tasks(crops, seeds, tasks):
     # Slightly less naive: now spread things out, if there is too much work
     # being done on any particular day.
 
@@ -971,7 +971,7 @@ def schedule_tasks(crops, seeds):
     # Walk forward, day by day, from the day of the first job.  For each day,
     # gather up all of the new jobs that can be done from that day forward.
     # Then try to allocate time to those jobs.
-    day = schedule[0].date
+    day = tasks[0].date
 
     # Here are all the jobs which may be scheduled on the day we've gotten up
     # to, ordered by the earliest time they may be done.  Preference will be
@@ -983,11 +983,11 @@ def schedule_tasks(crops, seeds):
     # max-man-hours scheduler.
     manHourLimitSchedule = []
 
-    while schedule or available:
+    while tasks or available:
         # First move any jobs out of schedule that may be done on or before the
         # day being scheduled.
-        while schedule and schedule[0].date <= day:
-            available.append(schedule.pop(0))
+        while tasks and tasks[0].date <= day:
+            available.append(tasks.pop(0))
 
         # Now schedule some jobs for today.  This is naive, it just schedules
         # jobs in order until one goes over the daily hour limit.
@@ -1002,7 +1002,7 @@ def schedule_tasks(crops, seeds):
                 # back any subsequent events that depend on it.
                 print 'Moved', event, 'from', event.when, 'to', event.when + schedDiff
                 event.when += schedDiff
-                for dep in schedule:
+                for dep in tasks:
                     if dep.seed is event.seed:
                         print dep, 'depends on', event, '; moving back', schedDiff
                         dep.when += schedDiff
@@ -1053,7 +1053,8 @@ def main():
 
     options['order'](order)
 
-    schedule = schedule_tasks(crops, seeds)
+    tasks = create_tasks(crops, seeds)
+    schedule = schedule_tasks(crops, seeds, tasks)
     display_schedule = options['schedule']
     if display_schedule is not None:
         display_schedule(schedule)
