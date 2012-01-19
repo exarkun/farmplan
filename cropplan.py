@@ -361,11 +361,11 @@ class Crop(record(
 
     @property
     def bed_feet(self):
-        if self.total_yield and self.yield_lbs_per_bed_foot:
-            return self.total_yield / self.yield_lbs_per_bed_foot
-        if self._bed_feet is not None:
+        if self.total_yield is None or self.yield_lbs_per_bed_foot is None:
+            if self._bed_feet is None:
+                raise RuntimeError("Who knows? %r" % (self,))
             return self._bed_feet
-        raise RuntimeError("Who knows? %r" % (self,))
+        return self.total_yield / self.yield_lbs_per_bed_foot
 
 
     @property
@@ -547,6 +547,11 @@ class Seed(record(
 
     @ivar notes: Freeform text.
     """
+    def __init__(self, *args, **kwargs):
+        super(Seed, self).__init__(*args, **kwargs)
+        self.crop.varieties.append(self)
+
+
     def _count_to_feet(self, count):
         if self.row_foot_per_thousand is None:
             return None
@@ -727,7 +732,6 @@ def load_seeds(path, crops):
             notes=nextField(),
             )
         seeds.append(seed)
-        crop.varieties.append(seed)
     return seeds
 
 
@@ -927,6 +931,10 @@ def create_tasks(crops, seeds):
     for seed in seeds:
         if seed.beginning_of_season is None or seed.greenhouse_days is None:
             tasks.append(FinishPlanning(seed))
+            continue
+
+        # Avoid creating tasks for things that are not actually being planted
+        if seed.bed_feet == 0:
             continue
 
         # Prep the bed before planting in it

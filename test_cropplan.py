@@ -115,6 +115,31 @@ class CropTests(TestCase, ComparisonTestsMixin):
         return dummyCrop(name='bar')
 
 
+    def test_bed_feet(self):
+        """
+        L{Crop.bed_feet} is computed based on the total yield required,
+        considering the estimated productivity of the crop per bed foot.
+        """
+        crop = dummyCrop(
+            fresh_eating_weeks=2, fresh_eating_lbs=3,
+            storage_eating_weeks=4, storage_eating_lbs=5,
+            yield_lbs_per_bed_foot=0.5)
+        self.assertEqual((2 * 3 + 4 * 5) * 2.0, crop.bed_feet)
+
+
+    def test_bed_feet_fallback(self):
+        """
+        If a crop's estimated productivity is not supplied, the C{_bed_feet}
+        attribute can provide a fallback value for the value of
+        C{Crop.bed_feet}.
+        """
+        crop = dummyCrop(
+            fresh_eating_weeks=2, fresh_eating_lbs=3,
+            storage_eating_weeks=4, storage_eating_lbs=5,
+            yield_lbs_per_bed_foot=None, _bed_feet=4.5)
+        self.assertEqual(4.5, crop.bed_feet)
+
+
 
 class SeedTests(TestCase, ComparisonTestsMixin):
     """
@@ -131,6 +156,19 @@ class SeedTests(TestCase, ComparisonTestsMixin):
 
     def createSecond(self):
         return dummySeed(self.crop, variety='bar')
+
+
+    def test_unplantedCrop(self):
+        """
+        L{Seed}s associated with a L{Crop} for which no bed feet are being
+        planted report their own bed feet as C{0}.
+        """
+        # If we have no yield, we need no bed feet.
+        self.crop.fresh_eating_weeks = 0
+        self.crop.storage_eating_weeks = 0
+
+        seed = dummySeed(self.crop)
+        self.assertEqual(0, seed.bed_feet)
 
 
 
@@ -382,6 +420,28 @@ class CreateTasksTests(TestCase):
     Tests for L{create_tasks}, a function for creating the list of necessary
     tasks from crop and seed information.
     """
+    def test_noTasksForNoFeet(self):
+        """
+        L{create_tasks} creates no tasks at all for a seed with C{bed_feet} set
+        to C{0}.
+        """
+        crop = dummyCrop()
+        crops = {'foo': crop}
+        seedA = dummySeed(crop, parts_per_crop=0)
+        seedB = dummySeed(crop, parts_per_crop=1)
+
+        # Just a sanity check
+        self.assertEqual(0, seedA.bed_feet)
+
+        seeds = [seedA, seedB]
+        tasks = create_tasks(crops, seeds)
+        for task in tasks:
+            if task.seed is seedA:
+                self.fail(
+                    "Created a task for a seed with no bed feet: %r" % (
+                        task,))
+
+
     def test_noBeginningOfSeason(self):
         """
         L{create_tasks} creates a L{FinishPlanning} for a seed with no beginning
