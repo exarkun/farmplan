@@ -270,8 +270,8 @@ class FinishPlanningTests(TestCase, TaskTestsMixin, ComparisonTestsMixin):
 
     def test_summarize(self):
         """
-        L{FinishPlanning.summarize} identifies the task type and includes the
-        name of the seed and crop it is for.
+        L{FinishPlanning.summarize} identifies the task as planning and includes
+        the name of the seed and crop it is for.
         """
         task = self.createTask()
         self.assertEqual("Finish planning bar (foo)", task.summarize())
@@ -302,6 +302,18 @@ class SeedFlatsTests(TestCase, TaskTestsMixin, ComparisonTestsMixin):
 
     def createSecond(self):
         return SeedFlats(datetime(2001, 6, 2), self.seed, 25)
+
+
+    def test_summarize(self):
+        """
+        L{SeedFlats.summarize} identifies the task as seeding flats and includes
+        the name of the seed and crop it is for as well as the number of bed
+        feet.
+        """
+        task = self.createTask()
+        self.assertEqual(
+            'Seed flats for 50 bed feet of bar (foo)',
+            task.summarize())
 
 
 
