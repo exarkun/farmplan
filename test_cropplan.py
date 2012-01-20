@@ -225,6 +225,14 @@ class TaskTestsMixin(object):
         self.assertEqual(second.seed, task.seed)
 
 
+    def test_str(self):
+        """
+        The result of C{str} on a task is the task summary in parenthesis.
+        """
+        task = self.createTask()
+        self.assertEqual("(%s)" % (task.summarize(),), str(task))
+
+
 
 class FinishPlanningTests(TestCase, TaskTestsMixin, ComparisonTestsMixin):
     """
@@ -276,7 +284,7 @@ class SeedFlatsTests(TestCase, TaskTestsMixin, ComparisonTestsMixin):
         Create a new L{SeedFlats} task using an arbitrary date, seed variety,
         and quantity.
         """
-        return SeedFlats(datetime(2000, 6, 12, 8, 0, 0), object(), 50)
+        return SeedFlats(datetime(2000, 6, 12, 8, 0, 0), self.seed, 50)
 
 
     def createFirst(self):
@@ -303,7 +311,7 @@ class DirectSeedTests(TestCase, TaskTestsMixin, ComparisonTestsMixin):
         Create a new L{DirectSeed} task using an arbitrary date, seed variety,
         and quantity.
         """
-        return DirectSeed(datetime(2001, 7, 2, 9, 30, 0), object(), 10)
+        return DirectSeed(datetime(2001, 7, 2, 9, 30, 0), self.seed, 10)
 
 
     def createFirst(self):
@@ -331,7 +339,7 @@ class BedPreparationTests(TestCase, TaskTestsMixin, ComparisonTestsMixin):
         Create a new L{BedPreparation} task using an arbitrary date, seed
         variety, and quantity.
         """
-        return BedPreparation(datetime(2002, 5, 25, 10, 15, 0), object(), 25)
+        return BedPreparation(datetime(2002, 5, 25, 10, 15, 0), self.seed, 25)
 
 
     def createFirst(self):
@@ -358,7 +366,7 @@ class WeedTests(TestCase, TaskTestsMixin, ComparisonTestsMixin):
         Create a new L{Weed} task using an arbitrary date, seed variety, and
         quantity.
         """
-        return Weed(datetime(2003, 8, 15, 11, 0, 0), object(), 50)
+        return Weed(datetime(2003, 8, 15, 11, 0, 0), self.seed, 50)
 
 
     def createFirst(self):
@@ -385,7 +393,7 @@ class TransplantTests(TestCase, TaskTestsMixin, ComparisonTestsMixin):
         Create a new L{Transplant} task using an arbitrary date, seed variety,
         and quantity.
         """
-        return Transplant(datetime(2004, 7, 1, 8, 0, 0), object(), 15)
+        return Transplant(datetime(2004, 7, 1, 8, 0, 0), self.seed, 15)
 
 
     def createFirst(self):
@@ -412,7 +420,7 @@ class HarvestTests(TestCase, TaskTestsMixin, ComparisonTestsMixin):
         Create a new L{Harvest} task using an arbitrary date, seed variety, and
         quantity.
         """
-        return Harvest(datetime(2005, 9, 15, 9, 0, 0), object(), 25)
+        return Harvest(datetime(2005, 9, 15, 9, 0, 0), self.seed, 25)
 
 
     def createFirst(self):
