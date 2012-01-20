@@ -29,6 +29,8 @@ from collections import defaultdict
 
 from zope.interface import Attribute, Interface, implements
 
+from pytz import timezone
+
 from dateutil.rrule import SU
 
 from vobject import iCalendar
@@ -116,11 +118,13 @@ def schedule_plaintext(schedule):
 
 
 def schedule_ical(schedule):
+    tz = timezone('US/Eastern')
     cal = iCalendar()
     for event in schedule:
+        when = event.when.replace(tzinfo=tz)
         vevent = cal.add('vevent')
-        vevent.add('dtstart').value = event.when
-        vevent.add('dtend').value = event.when + event.duration
+        vevent.add('dtstart').value = when
+        vevent.add('dtend').value = when + event.duration
 
         vevent.add('summary').value = event.summarize()
     print cal.serialize()
