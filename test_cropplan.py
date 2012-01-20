@@ -268,6 +268,15 @@ class FinishPlanningTests(TestCase, TaskTestsMixin, ComparisonTestsMixin):
             FinishPlanning(dummySeed(dummyCrop())).split, timedelta())
 
 
+    def test_summarize(self):
+        """
+        L{FinishPlanning.summarize} identifies the task type and includes the
+        name of the seed and crop it is for.
+        """
+        task = self.createTask()
+        self.assertEqual("Finish planning bar (foo)", task.summarize())
+
+
 
 class SeedFlatsTests(TestCase, TaskTestsMixin, ComparisonTestsMixin):
     """
