@@ -343,6 +343,17 @@ class DirectSeedTests(TestCase, TaskTestsMixin, ComparisonTestsMixin):
         return DirectSeed(datetime(2001, 6, 2), self.seed, 25)
 
 
+    def test_summarize(self):
+        """
+        L{DirectSeed.summarize} identifies the task as direct seeding and
+        includes the name of the seed and crop it is for as well as the number
+        of bed feet.
+        """
+        task = self.createTask()
+        self.assertEqual(
+            "Direct seed 10 bed feet of bar (foo)", task.summarize())
+
+
 
 class BedPreparationTests(TestCase, TaskTestsMixin, ComparisonTestsMixin):
     """
