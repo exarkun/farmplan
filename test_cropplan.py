@@ -140,6 +140,15 @@ class CropTests(TestCase, ComparisonTestsMixin):
         self.assertEqual(4.5, crop.bed_feet)
 
 
+    def test_invalid_yield_lbs_per_bed_foot(self):
+        """
+        L{Crop.yield_lbs_per_bed_foot} must be specified as C{None} or a
+        positive number.  Otherwise a L{ValueError} is raised.
+        """
+        self.assertRaises(ValueError, dummyCrop, yield_lbs_per_bed_foot=0)
+        self.assertRaises(ValueError, dummyCrop, yield_lbs_per_bed_foot=-1)
+
+
 
 class SeedTests(TestCase, ComparisonTestsMixin):
     """

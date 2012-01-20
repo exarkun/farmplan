@@ -356,6 +356,14 @@ class Crop(record(
     """
     def __init__(self, *args, **kwargs):
         super(Crop, self).__init__(*args, **kwargs)
+
+        if (self.yield_lbs_per_bed_foot is not None
+            and self.yield_lbs_per_bed_foot <= 0):
+            raise ValueError(
+                "%s yield_lbs_per_bed_foot must be None (if unknown) or "
+                "a positive number, not %r" % (
+                    self.name, self.yield_lbs_per_bed_foot))
+
         self.varieties = []
 
 
