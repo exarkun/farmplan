@@ -25,6 +25,7 @@ from sys import argv
 from math import ceil
 from itertools import groupby
 from datetime import date, datetime, timedelta
+from collections import defaultdict
 
 from zope.interface import Attribute, Interface, implements
 
@@ -669,10 +670,16 @@ def load_crops(path):
     data = reader(path.open())
     # Ignore the first two rows
     data.next()
-    data.next()
+    headers = data.next()
     crops = {}
+    defaults = defaultdict(float)
+    defaults['Yield Pounds Per Foot'] = None
     for row in data:
-        crop = Crop(row[0], *[float(field or '0.0') for field in row[1:]])
+        crop = Crop(
+            row[0],
+            *[(float(field) if field != '' else defaults[name])
+              for (name, field)
+              in zip(headers[1:], row[1:])])
         crops[crop.name] = crop
     return crops
 
