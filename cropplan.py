@@ -397,7 +397,7 @@ class Crop(record(
 
 
 
-class Price(record('kind dollars row_foot_increment')):
+class Price(record('kind dollars row_foot_increment'), ComparableRecord):
     @property
     def dollars_per_row_foot(self):
         return self.dollars / self.row_foot_increment
@@ -755,7 +755,7 @@ def load_seeds(path, crops):
 
 
 
-class Order(record('seed row_feet price')):
+class Order(record('seed row_feet price'), ComparableRecord):
     """
     @ivar row_feet: The number of row feet of planting this order is intended to
         satisfy.  Note that the order may be for more seeds than are needed to

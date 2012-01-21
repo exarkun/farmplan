@@ -11,9 +11,10 @@ from zope.interface.verify import verifyObject
 from twisted.trial.unittest import TestCase
 
 from cropplan import (
-    UnsplittableTask,
+    UnsplittableTask, MissingInformation,
     ITask, FinishPlanning, SeedFlats, DirectSeed, BedPreparation, Weed,
-    Transplant, Harvest, Crop, Seed, create_tasks, schedule_tasks)
+    Transplant, Harvest, Order, Price, Crop, Seed,
+    create_tasks, schedule_tasks)
 
 
 
@@ -178,6 +179,85 @@ class SeedTests(TestCase, ComparisonTestsMixin):
 
         seed = dummySeed(self.crop)
         self.assertEqual(0, seed.bed_feet)
+
+
+
+class SeedOrderTests(TestCase):
+    """
+    Tests for L{Seed.order}, a method for determining how much of a seed to buy,
+    and in what packaging.
+    """
+    def dummySeed(self, crop, **kw):
+        """
+        A version of L{dummySeed} which removes all default price information.
+        """
+        args = dict(
+            dollars_per_packet=None, dollars_per_hundred=None,
+            dollars_per_two_fifty=None, dollars_per_five_hundred=None,
+            dollars_per_thousand=None, dollars_per_five_thousand=None,
+            dollars_per_quarter_oz=None, dollars_per_half_oz=None,
+            dollars_per_oz=None, dollars_per_eighth_lb=None,
+            dollars_per_quarter_lb=None, dollars_per_half_lb=None,
+            dollars_per_lb=None, dollars_per_mini=None,
+            )
+        args.update(kw)
+        return dummySeed(crop, **args)
+
+
+    def test_missingPrices(self):
+        """
+        L{Seed.order} raises L{MissingInformation} if there is no price
+        information.
+        """
+        crop = dummyCrop()
+        seed = self.dummySeed(crop)
+        self.assertRaises(MissingInformation, seed.order, 100)
+
+
+    def test_orderMinimumSufficient(self):
+        """
+        L{Seed.order} takes a number of bed feet and returns a list of L{Order}
+        instances which represent enough seed to plant that number of bed feet
+        at the lowest price possible given the available price data.
+        """
+        crop = dummyCrop(rows_per_bed=2)
+        seed = self.dummySeed(
+            crop, dollars_per_packet=2.0, row_foot_per_packet=10)
+        order = seed.order(25)
+        price = Price('packet', 2.0, 10)
+        self.assertEqual([Order(seed, 70, price)], order)
+
+
+
+class PriceTests(TestCase, ComparisonTestsMixin):
+    """
+    Tests for L{Price}, representing a particular item and its cost.
+    """
+    def createFirst(self):
+        return Price('packet', 3.50, 10)
+
+
+    def createSecond(self):
+        return Price('mini', 2, 5)
+
+
+
+class OrderTests(TestCase, ComparisonTestsMixin):
+    """
+    Tests for L{Order}, representing a quantity of an item to purchase.
+    """
+    def setUp(self):
+        self.crop = dummyCrop()
+        self.seed = dummySeed(self.crop)
+        self.price = self.seed.prices[0]
+
+
+    def createFirst(self):
+        return Order(self.seed, 10, self.price)
+
+
+    def createSecond(self):
+        return Order(self.seed, 20, self.price)
 
 
 
