@@ -1,39 +1,39 @@
-,38.55,,54.675,,,,,,,,1891
-Crop,Eating lb/wk,Fresh Eating Weeks,Storage Pounds Per Week,Storage Eating Weeks,Variety,Harvest wks,Row Feet Per Ounce Seed,Yield Pounds Per Foot,Rows / Bed,Spacing (inches),Bed Feet
-Carrots,2,18,2,34,,2,280,1,3,,104
-Beets,3,18,3,34,,2,160,1,3,6,156
-Parsnips,0,0,2,16,,2,250,0.65,3,,49
-Eating Cucumbers,0.5,9,0,0,,2,,1.27,1,18,3
-Pickling Cucumbers,0,0,1.5,40,,2,,0.75,1,18,80
-Sweet Potatoes,0,0,3,28,,4,,1,2,12,84
-Onions,1.5,9,1.5,26,,,,1,3,6,52
-Peas,1,4,,,,,,0.36,2,,11
-Broccoli,1.5,8,2,4,,,,0.34,2,18,58
-Cauliflower,1.5,7,2,8,,,,0.34,2,18,77
-Kale,1,20,2,4,,,,1,2,18,28
-Cabbage,3,14,3,12,,,,1.25,2,18,62
-Brussels Sprouts,2,4,2,3,,,,0.5,2,18,28
-Salad Turnips,0.75,11,0,0,,,,0.5,3,,16
-Storage Turnips,0,0,0.75,12,,,,1,3,,9
-Radish,0.3,8,0.3,8,,,,0.3,3,,16
-Kohlrabi,1,20,1,16,,,,0.75,2,18,48
-Tomatoes,3,9,8,30,,,,2.9,1,18,92
-Sweet Peppers,1,7,0.125,30,,,,1,2,18,10
-Eggplant,0.125,4,1.5,14,,,,1.6,2,18,13
-Spinach,2,7,2,4,,,,0.29,3,6,75
-Fresh Beans,2,12,0.75,40,,,,1,2,,54
-Dry Beans,,,0.75,45,,,,0.17,2,,198
-Fennel,0.25,16,,,,,,0.4,2,12,10
-Leeks,1,8,1,8,,,,0.75,3,6,21
-Shallots,1,2,1,8,,,,0.5,3,6,20
-Lettuce,0.125,18,,,,,,0.5,3,12,4
-Chard (IT IS A BEET),1,20,2,4,,,,0.75,2,12,37
-Salsify (MYSTERY FRUIT),,,1,5,,,,0.75,3,,6
-Dill,,,,,,,,,2,,5
-Basil,,,0.5,20,,,,0.5,2,12,20
-Winter Squash,,,9,26,,,,1.07,1,18,218
-Melons,8,4,,,,,,3,1,18,10
-Garlic,,,,,,,,0.5,3,6,100
-Celeriac,0,0,1,24,,,,0.5,3,6,48
-Cut flowers,,,,,,,,,2,12,64
-Cilantro,,,,,,,,,2,4,5
+,38.55,,54.675,,,,,,,,1891,
+Crop,Eating lb/wk,Fresh Eating Weeks,Storage Pounds Per Week,Storage Eating Weeks,Variety,Harvest wks,Row Feet Per Ounce Seed,Yield Pounds Per Foot,Rows / Bed,Spacing (inches),Bed Feet,equipment
+Carrots,2,18,2,34,,2,280,1,3,,104,
+Beets,3,18,3,34,,2,160,1,3,6,156,
+Parsnips,0,0,2,16,,2,250,0.65,3,,49,
+Eating Cucumbers,0.5,9,0,0,,2,,1.27,1,18,3,row cover
+Pickling Cucumbers,0,0,1.5,40,,2,,0.75,1,18,80,row cover
+Sweet Potatoes,0,0,3,28,,4,,1,2,12,84,low tunnels
+Onions,1.5,9,1.5,26,,,,1,3,6,52,
+Peas,1,4,,,,,,0.36,2,,11,
+Broccoli,1.5,8,2,4,,,,0.34,2,18,58,row cover
+Cauliflower,1.5,7,2,8,,,,0.34,2,18,77,row cover
+Kale,1,20,2,4,,,,1,2,18,28,row cover
+Cabbage,3,14,3,12,,,,1.25,2,18,62,row cover
+Brussels Sprouts,2,4,2,3,,,,0.5,2,18,28,row cover
+Salad Turnips,0.75,11,0,0,,,,0.5,3,,16,row cover
+Storage Turnips,0,0,0.75,12,,,,1,3,,9,row cover
+Radish,0.3,8,0.3,8,,,,0.3,3,,16,row cover
+Kohlrabi,1,20,1,16,,,,0.75,2,18,48,row cover
+Tomatoes,3,9,8,30,,,,2.9,1,18,92,
+Sweet Peppers,1,7,0.125,30,,,,1,2,18,10,
+Eggplant,0.125,4,1.5,14,,,,1.6,2,18,13,
+Spinach,2,7,2,4,,,,0.29,3,6,75,
+Fresh Beans,2,12,0.75,40,,,,1,2,,54,
+Dry Beans,,,0.75,45,,,,0.17,2,,198,
+Fennel,0.25,16,,,,,,0.4,2,12,10,
+Leeks,1,8,1,8,,,,0.75,3,6,21,
+Shallots,1,2,1,8,,,,0.5,3,6,20,
+Lettuce,0.125,18,,,,,,0.5,3,12,4,
+Chard (IT IS A BEET),1,20,2,4,,,,0.75,2,12,37,
+Salsify (MYSTERY FRUIT),,,1,5,,,,0.75,3,,6,
+Dill,,,,,,,,,2,,5,
+Basil,,,0.5,20,,,,0.5,2,12,20,
+Winter Squash,,,9,26,,,,1.07,1,18,218,row cover
+Melons,8,4,,,,,,3,1,18,10,row cover
+Garlic,,,,,,,,0.5,3,6,100,mulch
+Celeriac,0,0,1,24,,,,0.5,3,6,48,
+Cut flowers,,,,,,,,,2,12,64,
+Cilantro,,,,,,,,,2,4,5,
