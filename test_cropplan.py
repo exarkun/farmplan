@@ -4,7 +4,7 @@
 Unit tests for the crop planning and scheduling module, L{cropplan}.
 """
 
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 
 from zope.interface.verify import verifyObject
 
@@ -15,7 +15,7 @@ from cropplan import (
     UnsplittableTask, MissingInformation,
     ITask, FinishPlanning, SeedFlats, DirectSeed, BedPreparation, Weed,
     Transplant, Harvest, Order, Price, Crop, Seed,
-    load_crops, create_tasks, schedule_tasks)
+    load_crops, load_seeds, create_tasks, schedule_tasks)
 
 
 
@@ -172,6 +172,73 @@ class LoadCropsTests(TestCase):
         crops = load_crops(path)
         self.assertEqual({"apples": apples}, crops)
 
+
+
+class LoadSeedsTests(TestCase):
+    """
+    Tests for L{load_seeds} which reads seed variety data from a CSV file and
+    returns a C{dict} containing L{Seed} instances.
+    """
+    HEADER = (
+        "Type,Variety,Fresh Eating Generations,Storage Generations,"
+        "Bed Ft/fresh eating Generation,Bed ft/Storage generation,"
+        "time between generations,Parts Per Crop,Product ID,Greenhouse (days),"
+        "Outside,Maturity (total days from seeding),End of season,"
+        "seeds/packet,row feet/packet,Seeds/oz,$$/packet,$$/100,$$/250,$$/500,"
+        "$$/M,$$/(M>=5),$$/.25OZ,$$/.5OZ,$$/oz,$$/.125LB,$$/.25LB,$$/.5LB,"
+        "$$/LB,ft/oz,$$/mini,Seeds/mini,row feet/mini,Harvest Duration (Days),"
+        "Notes")
+
+    def _serialize(self, seed):
+        format = (
+            "%(crop)s,%(variety)s,%(parts_per_crop)d,%(product_id)s,"
+            "%(greenhouse_days)s,%(beginning_of_season)s,%(maturity_days)d,"
+            "%(end_of_season)s,%(seeds_per_packet)d,%(row_foot_per_packet)d,"
+            "%(seeds_per_oz)d,%(dollars_per_packet)f,%(dollars_per_hundred)f,"
+            "%(dollars_per_two_fifty)f,%(dollars_per_five_hundred)f,"
+            "%(dollars_per_thousand)f,%(dollars_per_five_thousand)f,"
+            "%(dollars_per_quarter_oz)f,%(dollars_per_half_oz)f,"
+            "%(dollars_per_oz)f,%(dollars_per_eighth_lb)f,"
+            "%(dollars_per_quarter_lb)f,%(dollars_per_half_lb)f,"
+            "%(dollars_per_lb)f,%(row_foot_per_oz)f,%(dollars_per_mini)f,"
+            "%(seeds_per_mini)d,%(row_foot_per_mini)f,%(harvest_duration)d,"
+            "%(notes)s")
+        values = vars(seed).copy()
+        dates = ["beginning_of_season", "end_of_season"]
+        for k in dates:
+            d = values[k]
+            d = date(1980, 1, 1) + timedelta(days=d)
+            values[k] = "%d/%d/%d" % (d.month, d.day, d.year)
+        values['crop'] = values['crop'].name
+        if values['greenhouse_days'] is None:
+            values['greenhouse_days'] = ""
+        # LA LA
+        values['dollars_per_five_thousand'] /= 5.0
+        return format % values
+
+
+    def test_load_seeds(self):
+        """
+        Given a L{FilePath} pointing at a CSV file containing a header row
+        followed by rows containing a field for each attribute of L{Crop}, and a
+        C{dict} like the one returned by L{load_crops}, L{load_seeds} constructs
+        a C{list} of L{Seed} instances, with fields populated from the file.
+        """
+        apples = Crop(
+            "apples", 5.5, 3, 10, 5, "", 2, 100, 250, 1, 120, 1000)
+        crops = {'apples': apples}
+
+        wealthy = Seed(
+            apples, 'wealthy', 1, "", None, 91, 25, 150, 100, 10,
+            1000, 1.50, 2.50, 3.50, 4.50, 5.50, 6.50, 7.50, 8.50, 9.50, 10.50,
+            11.50, 12.50, 13.50, 25, 0.50, 15, 3, 14, "")
+
+        path = FilePath(self.mktemp())
+        path.setContent(
+            "%s\n%s\n" % (self.HEADER, self._serialize(wealthy)))
+
+        seeds = load_seeds(path, crops)
+        self.assertEqual([wealthy], seeds)
 
 
 
