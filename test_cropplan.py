@@ -191,7 +191,7 @@ class LoadSeedsTests(TestCase):
 
     def _serialize(self, seed):
         format = (
-            "%(crop)s,%(variety)s,%(parts_per_crop)d,%(product_id)s,"
+            "%(crop)s,%(variety)s,,,,,,%(parts_per_crop)d,%(product_id)s,"
             "%(greenhouse_days)s,%(beginning_of_season)s,%(maturity_days)d,"
             "%(end_of_season)s,%(seeds_per_packet)d,%(row_foot_per_packet)d,"
             "%(seeds_per_oz)d,%(dollars_per_packet)f,%(dollars_per_hundred)f,"
@@ -210,8 +210,10 @@ class LoadSeedsTests(TestCase):
             d = date(1980, 1, 1) + timedelta(days=d)
             values[k] = "%d/%d/%d" % (d.month, d.day, d.year)
         values['crop'] = values['crop'].name
-        if values['greenhouse_days'] is None:
-            values['greenhouse_days'] = ""
+        nones = ['greenhouse_days', 'product_id', 'notes']
+        for k in nones:
+            if values[k] is None:
+                values[k] = ""
         # LA LA
         values['dollars_per_five_thousand'] /= 5.0
         return format % values
@@ -229,9 +231,9 @@ class LoadSeedsTests(TestCase):
         crops = {'apples': apples}
 
         wealthy = Seed(
-            apples, 'wealthy', 1, "", None, 91, 25, 150, 100, 10,
+            apples, 'wealthy', 1, None, None, 91, 25, 150, 100, 10,
             1000, 1.50, 2.50, 3.50, 4.50, 5.50, 6.50, 7.50, 8.50, 9.50, 10.50,
-            11.50, 12.50, 13.50, 25, 0.50, 15, 3, 14, "")
+            11.50, 12.50, 13.50, 25, 0.50, 15, 3, 14, None)
 
         path = FilePath(self.mktemp())
         path.setContent(

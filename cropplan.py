@@ -670,6 +670,26 @@ class Seed(record(
 
 
 
+def load_csv(data, known_columns, defaults, parsers, cls):
+    headers = data.next()
+
+    loaded = []
+    for row in data:
+        kwargs = {}
+        for header, field in zip(headers, row):
+            if header not in known_columns:
+                continue
+            attribute = known_columns[header]
+            if field == '':
+                field = defaults[attribute]
+            else:
+                field = parsers[attribute](field)
+            kwargs[attribute] = field
+        loaded.append(cls(**kwargs))
+    return loaded
+
+
+
 def load_crops(path):
     known_columns = {
         "Crop": "name",
@@ -685,11 +705,6 @@ def load_crops(path):
         "Spacing (inches)": "in_row_spacing",
         "Bed Feet": "_bed_feet"}
 
-    data = reader(path.open())
-    # Ignore the first two rows
-    data.next()
-    headers = data.next()
-
     defaults = defaultdict(float)
     defaults['yield_lbs_per_bed_foot'] = None
     defaults['variety'] = ''
@@ -699,20 +714,11 @@ def load_crops(path):
     parsers['name'] = str
     parsers['variety'] = str
 
-    crops = {}
-    for row in data:
-        kwargs = {}
-        for header, field in zip(headers, row):
-            if header not in known_columns:
-                continue
-            attribute = known_columns[header]
-            if field == '':
-                field = defaults[attribute]
-            else:
-                field = parsers[attribute](field)
-            kwargs[attribute] = field
-        crops[kwargs['name']] = Crop(**kwargs)
-    return crops
+    data = reader(path.open())
+    # Ignore the first garbage row
+    data.next()
+    crops = load_csv(data, known_columns, defaults, parsers, Crop)
+    return dict([(crop.name, crop) for crop in crops])
 
 
 
@@ -738,47 +744,58 @@ def parse_date(string):
 
 
 def load_seeds(path, crops):
-    data = reader(path.open())
-    # Ignore the first row
-    data.next()
-    seeds = []
-    for row in data:
-        if not row[0]:
-            continue
-        nextField = iter(row).next
+    known_columns = {
+        "Type": "crop",
+        "Variety": "variety",
+        "Parts Per Crop": "parts_per_crop",
+        "Product ID": "product_id",
+        "Greenhouse (days)": "greenhouse_days",
+        "Outside": "beginning_of_season",
+        "Maturity (total days from seeding)": "maturity_days",
+        "End of season": "end_of_season",
+        "seeds/packet": "seeds_per_packet",
+        "row feet/packet": "row_foot_per_packet",
+        "Seeds/oz": "seeds_per_oz",
+        "$$/packet": "dollars_per_packet",
+        "$$/100": "dollars_per_hundred",
+        "$$/250": "dollars_per_two_fifty",
+        "$$/500": "dollars_per_five_hundred",
+        "$$/M": "dollars_per_thousand",
+        "$$/(M>=5)": "dollars_per_five_thousand",
+        "$$/.25OZ": "dollars_per_quarter_oz",
+        "$$/.5OZ": "dollars_per_half_oz",
+        "$$/oz": "dollars_per_oz",
+        "$$/.125LB": "dollars_per_eighth_lb",
+        "$$/.25LB": "dollars_per_quarter_lb",
+        "$$/.5LB": "dollars_per_half_lb",
+        "$$/LB": "dollars_per_lb",
+        "ft/oz": "row_foot_per_oz",
+        "$$/mini": "dollars_per_mini",
+        "Seeds/mini": "seeds_per_mini",
+        "row feet/mini": "row_foot_per_mini",
+        "Harvest Duration (Days)": "harvest_duration",
+        "Notes": "notes"}
 
-        crop = crops[nextField()]
-        seed = Seed(
-            crop=crop, variety=nextField(), parts_per_crop=parse_or_default(int, nextField(), 1),
-            product_id=nextField(), greenhouse_days=parse_or_default(int, nextField(), None),
-            beginning_of_season=parse_or_default(parse_date, nextField(), None),
-            maturity_days=parse_or_default(int, nextField(), None),
-            end_of_season=parse_or_default(parse_date, nextField(), None),
-            seeds_per_packet=parse_or_default(int, nextField(), None),
-            row_foot_per_packet=parse_or_default(float, nextField(), None),
-            seeds_per_oz=parse_or_default(float, nextField(), None),
-            dollars_per_packet=parse_or_default(float, nextField(), None),
-            dollars_per_hundred=parse_or_default(float, nextField(), None),
-            dollars_per_two_fifty=parse_or_default(float, nextField(), None),
-            dollars_per_five_hundred=parse_or_default(float, nextField(), None),
-            dollars_per_thousand=parse_or_default(float, nextField(), None),
-            dollars_per_five_thousand=parse_or_default(lambda s: float(s) * 5, nextField(), None),
-            dollars_per_quarter_oz=parse_or_default(float, nextField(), None),
-            dollars_per_half_oz=parse_or_default(float, nextField(), None),
-            dollars_per_oz=parse_or_default(float, nextField(), None),
-            dollars_per_eighth_lb=parse_or_default(float, nextField(), None),
-            dollars_per_quarter_lb=parse_or_default(float, nextField(), None),
-            dollars_per_half_lb=parse_or_default(float, nextField(), None),
-            dollars_per_lb=parse_or_default(float, nextField(), None),
-            row_foot_per_oz=parse_or_default(float, nextField(), None),
-            dollars_per_mini=parse_or_default(float, nextField(), None),
-            seeds_per_mini=parse_or_default(int, nextField(), None),
-            row_foot_per_mini=parse_or_default(float, nextField(), None),
-            harvest_duration=parse_or_default(int, nextField(), None),
-            notes=nextField(),
-            )
-        seeds.append(seed)
-    return seeds
+    defaults = defaultdict(lambda: None)
+    defaults['parts_per_crop'] = 1
+
+    parsers = defaultdict(lambda: float)
+    parsers["crop"] = lambda name: crops[name]
+    parsers["variety"] = str
+    parsers["product_id"] = str
+    parsers["parts_per_crop"] = int
+    parsers["greenhouse_days"] = int
+    parsers["beginning_of_season"] = parse_date
+    parsers["maturity_days"] = int
+    parsers["end_of_season"] = parse_date
+    parsers["seeds_per_packet"] = int
+    parsers["dollars_per_five_thousand"] = lambda s: float(s) * 5
+    parsers["seeds_per_mini"] = int
+    parsers["harvest_duration"] = int
+    parsers["notes"] = str
+
+    data = reader(path.open())
+    return load_csv(data, known_columns, defaults, parsers, Seed)
 
 
 
