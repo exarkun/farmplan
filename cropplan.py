@@ -671,20 +671,47 @@ class Seed(record(
 
 
 def load_crops(path):
+    known_columns = {
+        "Crop": "name",
+        "Eating lb/wk": "fresh_eating_lbs",
+        "Fresh Eating Weeks": "fresh_eating_weeks",
+        "Storage Pounds Per Week": "storage_eating_lbs",
+        "Storage Eating Weeks": "storage_eating_weeks",
+        "Variety": "variety",
+        "Harvest wks": "harvest_weeks",
+        "Row Feet Per Ounce Seed": "row_feet_per_oz_seed",
+        "Yield Pounds Per Foot": "yield_lbs_per_bed_foot",
+        "Rows / Bed": "rows_per_bed",
+        "Spacing (inches)": "in_row_spacing",
+        "Bed Feet": "_bed_feet"}
+
     data = reader(path.open())
     # Ignore the first two rows
     data.next()
     headers = data.next()
-    crops = {}
+
     defaults = defaultdict(float)
-    defaults['Yield Pounds Per Foot'] = None
+    defaults['yield_lbs_per_bed_foot'] = None
+    defaults['variety'] = ''
+    defaults['_bed_feet'] = None
+
+    parsers = defaultdict(lambda: float)
+    parsers['name'] = str
+    parsers['variety'] = str
+
+    crops = {}
     for row in data:
-        crop = Crop(
-            row[0],
-            *[(float(field) if field != '' else defaults[name])
-              for (name, field)
-              in zip(headers[1:], row[1:])])
-        crops[crop.name] = crop
+        kwargs = {}
+        for header, field in zip(headers, row):
+            if header not in known_columns:
+                continue
+            attribute = known_columns[header]
+            if field == '':
+                field = defaults[attribute]
+            else:
+                field = parsers[attribute](field)
+            kwargs[attribute] = field
+        crops[kwargs['name']] = Crop(**kwargs)
     return crops
 
 

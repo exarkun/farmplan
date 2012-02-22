@@ -9,12 +9,13 @@ from datetime import datetime, timedelta
 from zope.interface.verify import verifyObject
 
 from twisted.trial.unittest import TestCase
+from twisted.python.filepath import FilePath
 
 from cropplan import (
     UnsplittableTask, MissingInformation,
     ITask, FinishPlanning, SeedFlats, DirectSeed, BedPreparation, Weed,
     Transplant, Harvest, Order, Price, Crop, Seed,
-    create_tasks, schedule_tasks)
+    load_crops, create_tasks, schedule_tasks)
 
 
 
@@ -100,6 +101,77 @@ class ComparisonTestsMixin(object):
         first = self.createFirst()
         second = self.createSecond()
         self.assertTrue(first != second)
+
+
+
+class LoadCropsTests(TestCase):
+    """
+    Tests for L{load_crops} which reads crop data from a CSV file and returns a
+    C{dict} containing L{Crop} instances.
+    """
+    HEADER = (
+        "Crop,Eating lb/wk,Fresh Eating Weeks,Storage Pounds Per Week,"
+        "Storage Eating Weeks,Variety,Harvest wks,Row Feet Per Ounce Seed,"
+        "Yield Pounds Per Foot,Rows / Bed,Spacing (inches),Bed Feet,equipment")
+
+    def _serialize(self, crop):
+        format = (
+            "%(name)s,%(fresh_eating_lbs)f,%(fresh_eating_weeks)d,"
+            "%(storage_eating_lbs)f,%(storage_eating_weeks)d,"
+            "%(variety)s,%(harvest_weeks)d,%(row_feet_per_oz_seed)f,"
+            "%(yield_lbs_per_bed_foot)f,%(rows_per_bed)d,%(in_row_spacing)d,"
+            "%(_bed_feet)s")
+        values = vars(crop).copy()
+        if values['_bed_feet'] is None:
+            values['_bed_feet'] = ''
+        return format % values
+
+
+    def test_load_crops(self):
+        """
+        Given a L{FilePath} pointing at a CSV file containing a garbage row and
+        a header row followed by rows containing a field for each attribute of
+        L{Crop}, L{load_crops} constructs a C{dict} with crop names as the keys
+        and L{Crop} instances, with fields populated from the file, as values.
+        """
+        apples = Crop(
+            "apples", 5.5, 3, 10, 5, "", 2, 100, 250, 1, 120, 1000)
+        path = FilePath(self.mktemp())
+        path.setContent(
+            "garbage\n%s\n%s\n" % (self.HEADER, self._serialize(apples)))
+        crops = load_crops(path)
+        self.assertEqual({"apples": apples}, crops)
+
+
+    def test_implicit_bed_feet(self):
+        """
+        Rows from the input may omit explicit information about the number of
+        bed feet planned, allowing the value to be computed from other fields.
+        """
+        apples = Crop(
+            "apples", 5.5, 3, 10, 5, "", 2, 100, 250, 1, 120, None)
+        path = FilePath(self.mktemp())
+        path.setContent(
+            "garbage\n%s\n%s\n" % (self.HEADER, self._serialize(apples)))
+        crops = load_crops(path)
+        self.assertEqual({"apples": apples}, crops)
+
+
+    def test_extra_columns(self):
+        """
+        Extra columns in the input file that are not part of the L{Crop} are
+        ignored.
+        """
+        apples = Crop(
+            "apples", 5.5, 3, 10, 5, "", 2, 100, 250, 1, 120, None)
+        path = FilePath(self.mktemp())
+        path.setContent(
+            "garbage\n%s\n%s\n" % (
+                "mystery," + self.HEADER,
+                "mystery value," + self._serialize(apples)))
+        crops = load_crops(path)
+        self.assertEqual({"apples": apples}, crops)
+
 
 
 
