@@ -460,7 +460,9 @@ class Seed(record(
         'dollars_per_five_hundred dollars_per_thousand dollars_per_five_thousand dollars_per_quarter_oz '
         'dollars_per_half_oz dollars_per_oz dollars_per_eighth_lb dollars_per_quarter_lb '
         'dollars_per_half_lb dollars_per_lb row_foot_per_oz dollars_per_mini '
-        'seeds_per_mini row_foot_per_mini harvest_duration notes'),
+        'seeds_per_mini row_foot_per_mini harvest_duration notes intergenerational_days '
+        'fresh_generations storage_generations', intergenerational_days=None, fresh_generations=None,
+        storage_generations=None),
            ComparableRecord):
     """
     @ivar crop: The name of the crop - matches the name of one of the L{Crop}
@@ -559,6 +561,20 @@ class Seed(record(
         harvested once it is mature.
 
     @ivar notes: Freeform text.
+
+    @ivar intergenerational_days: The number of days between successive
+        plantings of this variety, or C{None} if no succession planting will be
+        done.
+
+    @ivar fresh_generations: The number of generations (successions) of this
+        variety which will be planted to produce fresh eating produce, or
+        C{None} if no succession planting will be done (ie, if a single planting
+        will be done for the variety).
+
+    @ivar storage_generations: The number of generations (successions) of this
+        variety which will be planted to produce storage produce, or C{None} if
+        no succession planting will be done (ie, if a single planting will be
+        done for the variety).
     """
     def __init__(self, *args, **kwargs):
         super(Seed, self).__init__(*args, **kwargs)
@@ -774,7 +790,10 @@ def load_seeds(path, crops):
         "Seeds/mini": "seeds_per_mini",
         "row feet/mini": "row_foot_per_mini",
         "Harvest Duration (Days)": "harvest_duration",
-        "Notes": "notes"}
+        "Notes": "notes",
+        "Fresh Eating Generations": "fresh_generations",
+        "Storage Generations": "storage_generations",
+        "time between generations": "intergenerational_days"}
 
     defaults = defaultdict(lambda: None)
     defaults['parts_per_crop'] = 1

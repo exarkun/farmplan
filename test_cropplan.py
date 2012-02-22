@@ -191,7 +191,8 @@ class LoadSeedsTests(TestCase):
 
     def _serialize(self, seed):
         format = (
-            "%(crop)s,%(variety)s,,,,,,%(parts_per_crop)d,%(product_id)s,"
+            "%(crop)s,%(variety)s,%(fresh_generations)s,%(storage_generations)s,,,"
+            "%(intergenerational_days)s,%(parts_per_crop)d,%(product_id)s,"
             "%(greenhouse_days)s,%(beginning_of_season)s,%(maturity_days)d,"
             "%(end_of_season)s,%(seeds_per_packet)d,%(row_foot_per_packet)d,"
             "%(seeds_per_oz)d,%(dollars_per_packet)f,%(dollars_per_hundred)f,"
@@ -210,7 +211,9 @@ class LoadSeedsTests(TestCase):
             d = date(1980, 1, 1) + timedelta(days=d)
             values[k] = "%d/%d/%d" % (d.month, d.day, d.year)
         values['crop'] = values['crop'].name
-        nones = ['greenhouse_days', 'product_id', 'notes']
+        nones = [
+            'greenhouse_days', 'product_id', 'notes', 'intergenerational_days',
+            'fresh_generations', 'storage_generations']
         for k in nones:
             if values[k] is None:
                 values[k] = ""
@@ -234,6 +237,32 @@ class LoadSeedsTests(TestCase):
             apples, 'wealthy', 1, None, None, 91, 25, 150, 100, 10,
             1000, 1.50, 2.50, 3.50, 4.50, 5.50, 6.50, 7.50, 8.50, 9.50, 10.50,
             11.50, 12.50, 13.50, 25, 0.50, 15, 3, 14, None)
+
+        path = FilePath(self.mktemp())
+        path.setContent(
+            "%s\n%s\n" % (self.HEADER, self._serialize(wealthy)))
+
+        seeds = load_seeds(path, crops)
+        self.assertEqual([wealthy], seeds)
+
+
+    def test_load_generations(self):
+        """
+        L{Seed.intergenerational_time}, L{Seed.fresh_generations}, and
+        L{Seed.storage_generations} are populated from the C{"time between
+        generations"}, C{"fresh eating generations"}, and C{"storage
+        generations"} columns, respectively.
+        """
+        apples = Crop(
+            "apples", 5.5, 3, 10, 5, "", 2, 100, 250, 1, 120, 1000)
+        crops = {'apples': apples}
+
+        wealthy = Seed(
+            apples, 'wealthy', 1, None, None, 91, 25, 150, 100, 10,
+            1000, 1.50, 2.50, 3.50, 4.50, 5.50, 6.50, 7.50, 8.50, 9.50, 10.50,
+            11.50, 12.50, 13.50, 25, 0.50, 15, 3, 14, None,
+            intergenerational_days=13, fresh_generations=4,
+            storage_generations=2)
 
         path = FilePath(self.mktemp())
         path.setContent(
