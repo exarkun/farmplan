@@ -18,6 +18,11 @@ from cropplan import (
     load_crops, load_seeds, create_tasks, schedule_tasks)
 
 
+# TODO
+# Add 30% buffer for failed germination
+# Add 30% buffer for failure in the field
+# Add 15% extra for CSA share
+
 
 def dummyCrop(**kw):
     args = dict(
@@ -192,7 +197,7 @@ class LoadSeedsTests(TestCase):
     def _serialize(self, seed):
         format = (
             "%(crop)s,%(variety)s,%(fresh_generations)s,%(storage_generations)s,,,"
-            "%(intergenerational_days)s,%(parts_per_crop)d,%(product_id)s,"
+            "%(intergenerational_weeks)s,%(parts_per_crop)d,%(product_id)s,"
             "%(greenhouse_days)s,%(beginning_of_season)s,%(maturity_days)d,"
             "%(end_of_season)s,%(seeds_per_packet)d,%(row_foot_per_packet)d,"
             "%(seeds_per_oz)d,%(dollars_per_packet)f,%(dollars_per_hundred)f,"
@@ -212,7 +217,7 @@ class LoadSeedsTests(TestCase):
             values[k] = "%d/%d/%d" % (d.month, d.day, d.year)
         values['crop'] = values['crop'].name
         nones = [
-            'greenhouse_days', 'product_id', 'notes', 'intergenerational_days',
+            'greenhouse_days', 'product_id', 'notes', 'intergenerational_weeks',
             'fresh_generations', 'storage_generations']
         for k in nones:
             if values[k] is None:
@@ -248,7 +253,7 @@ class LoadSeedsTests(TestCase):
 
     def test_load_generations(self):
         """
-        L{Seed.intergenerational_time}, L{Seed.fresh_generations}, and
+        L{Seed.intergenerational_weeks}, L{Seed.fresh_generations}, and
         L{Seed.storage_generations} are populated from the C{"time between
         generations"}, C{"fresh eating generations"}, and C{"storage
         generations"} columns, respectively.
@@ -261,7 +266,7 @@ class LoadSeedsTests(TestCase):
             apples, 'wealthy', 1, None, None, 91, 25, 150, 100, 10,
             1000, 1.50, 2.50, 3.50, 4.50, 5.50, 6.50, 7.50, 8.50, 9.50, 10.50,
             11.50, 12.50, 13.50, 25, 0.50, 15, 3, 14, None,
-            intergenerational_days=13, fresh_generations=4,
+            intergenerational_weeks=2, fresh_generations=4,
             storage_generations=2)
 
         path = FilePath(self.mktemp())
@@ -765,6 +770,68 @@ class CreateTasksTests(TestCase):
         seeds = [seed]
         tasks = create_tasks(crops, seeds)
         self.assertEqual([FinishPlanning(seed)], tasks)
+
+
+    def test_tasksForDirectSeeding(self):
+        crop = dummyCrop()
+        crops = {'foo': crop}
+        seed = dummySeed(crop, greenhouse_days=0)
+        seeds = [seed]
+        tasks = create_tasks(crops, seeds)
+        self.assertEqual(
+            [BedPreparation, DirectSeed, Harvest], map(type, tasks))
+
+
+    def test_tasksForFlatSeeding(self):
+        crop = dummyCrop()
+        crops = {'foo': crop}
+        seed = dummySeed(crop)
+        seeds = [seed]
+        tasks = create_tasks(crops, seeds)
+        self.assertEqual(
+            [BedPreparation, SeedFlats, Transplant, Harvest], map(type, tasks))
+
+
+    def test_severalFreshGenerations(self):
+        """
+        L{create_tasks} creates a
+        """
+        crop = dummyCrop()
+        crops = {'foo': crop}
+        seed = dummySeed(
+            crop, greenhouse_days=21,
+            fresh_generations=2, intergenerational_weeks=3)
+        seeds = [seed]
+        tasks = create_tasks(crops, seeds)
+        self.assertEqual(8, len(tasks))
+
+        epoch = datetime.now().replace(
+            month=1, day=1, hour=0, minute=0, second=0, microsecond=0)
+        def day(n):
+            return epoch + timedelta(days=n)
+
+        def t(cls, adj):
+            return cls(
+                day(seed.beginning_of_season + adj),
+                seed, seed.bed_feet / 2.0)
+
+        expected = [
+            # Generation 1
+            t(BedPreparation, -14),
+            t(SeedFlats, -seed.greenhouse_days),
+            t(Transplant, 0),
+            t(Harvest, seed.maturity_days - seed.greenhouse_days),
+
+            # Generation 2
+            t(BedPreparation, seed.intergenerational_days - 14),
+            t(SeedFlats, seed.intergenerational_days - seed.greenhouse_days),
+            t(Transplant, seed.intergenerational_days),
+            t(Harvest,
+              seed.intergenerational_days + seed.maturity_days -
+              seed.greenhouse_days)]
+
+        self.assertEqual(
+            sorted(expected, key=lambda task: task.when), tasks)
 
 
 
