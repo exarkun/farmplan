@@ -724,16 +724,18 @@ class CreateTasksTests(TestCase):
     Tests for L{create_tasks}, a function for creating the list of necessary
     tasks from crop and seed information.
     """
-    def _taskFactory(self, seed, generations=1.0):
+    def _taskFactory(self, seed, time_base=None, generations=1.0):
         epoch = datetime.now().replace(
             month=1, day=1, hour=0, minute=0, second=0, microsecond=0)
         def day(n):
             return epoch + timedelta(days=n)
 
+        if time_base is None:
+            time_base = seed.beginning_of_season
+
         def t(cls, adj):
             return cls(
-                day(seed.beginning_of_season + adj),
-                seed, seed.bed_feet / generations)
+                day(time_base + adj), seed, seed.bed_feet / float(generations))
 
         return t
 
@@ -845,6 +847,53 @@ class CreateTasksTests(TestCase):
         self.assertEqual(8, len(tasks))
 
         t = self._taskFactory(seed, generations=2.0)
+
+        expected = [
+            # Generation 1
+            t(BedPreparation, -14),
+            t(SeedFlats, -seed.greenhouse_days),
+            t(Transplant, 0),
+            t(Harvest, seed.maturity_days - seed.greenhouse_days),
+
+            # Generation 2
+            t(BedPreparation, seed.intergenerational_days - 14),
+            t(SeedFlats, seed.intergenerational_days - seed.greenhouse_days),
+            t(Transplant, seed.intergenerational_days),
+            t(Harvest,
+              seed.intergenerational_days + seed.maturity_days -
+              seed.greenhouse_days)]
+
+        self.assertEqual(
+            sorted(expected, key=lambda task: task.when), tasks)
+
+
+    def test_severalStorageGenerations(self):
+        """
+        For a variety with multiple succession plantings planned for storage
+        production, L{create_tasks} creates an instance of each normal
+        cultivation task for each succession.  Tasks are scheduled to cause
+        harvest of the last succession to coincide with the end of the season
+        for that crop, with successions separated by the amount of time
+        indicated by C{intergenerational_weeks}.
+        """
+        crop = dummyCrop()
+        crops = {'foo': crop}
+        seed = dummySeed(
+            crop, greenhouse_days=21,
+            storage_generations=2, intergenerational_weeks=3)
+        seeds = [seed]
+        tasks = create_tasks(crops, seeds)
+        self.assertEqual(8, len(tasks))
+
+        # Find out when the first seeding of the first storage generation should
+        # happen; the rest of the date math is easier using this as a reference.
+        time_base = seed.end_of_season
+        time_base -= seed.maturity_days
+        for n in range(seed.storage_generations - 1):
+            time_base -= seed.intergenerational_days
+
+        t = self._taskFactory(
+            seed, time_base=time_base, generations=seed.storage_generations)
 
         expected = [
             # Generation 1

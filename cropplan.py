@@ -1033,15 +1033,47 @@ def create_tasks(crops, seeds):
         if seed.bed_feet == 0:
             continue
 
+        # if seed.variety == 'Patterson':
+        #     import pdb; pdb.set_trace()
+
         # Handle succession planting
-        generations = seed.fresh_generations
+        if seed.fresh_generations is None and seed.storage_generations is None:
+            fresh_generations = 1
+            storage_generations = 0
+        else:
+            fresh_generations = seed.fresh_generations
+            if fresh_generations is None:
+                fresh_generations = 0
+            storage_generations = seed.storage_generations
+            if storage_generations is None:
+                storage_generations = 0
+
         intergenerational_days = seed.intergenerational_days
-        if generations is None or intergenerational_days is None:
-            generations = 1
+        if intergenerational_days is None:
+            if fresh_generations > 1 or storage_generations > 1:
+                raise ValueError(
+                    "Cannot have multiple generations without defining "
+                    "intergenerational time.")
+            # Doesn't matter, just make it an integer
             intergenerational_days = 0
 
-        for generation in range(generations):
+        generations = fresh_generations + storage_generations
+
+        # Fresh produce generations, pegged to the beginning of the season
+        for generation in range(fresh_generations):
             generation_tasks = list(_create_planting_tasks(epoch, seed))
+            for t in generation_tasks:
+                t.when += timedelta(
+                    days=generation * intergenerational_days)
+                t.quantity /= generations
+            tasks.extend(generation_tasks)
+
+        # Storage produce generations, pegged to the end of the season
+        storage_epoch = epoch + _storage_offset(seed)
+        succession_offset = (storage_generations - 1) * intergenerational_days
+        storage_epoch -= timedelta(days=succession_offset)
+        for generation in range(storage_generations):
+            generation_tasks = list(_create_planting_tasks(storage_epoch, seed))
             for t in generation_tasks:
                 t.when += timedelta(
                     days=generation * intergenerational_days)
@@ -1050,6 +1082,20 @@ def create_tasks(crops, seeds):
 
     tasks.sort(key=lambda event: event.when)
     return tasks
+
+
+
+def _storage_offset(seed):
+    """
+    Compute the number of days between the first possible day of the season a
+    seed variety's first spring succession can be put outside and the last
+    possible day of the season that seed variety's first storage success can be
+    put outside.
+    """
+    last_harvest = seed.end_of_season
+    last_planting = last_harvest - seed.maturity_days
+    storage_offset = last_planting - seed.beginning_of_season
+    return timedelta(days=storage_offset)
 
 
 
