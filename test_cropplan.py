@@ -724,6 +724,20 @@ class CreateTasksTests(TestCase):
     Tests for L{create_tasks}, a function for creating the list of necessary
     tasks from crop and seed information.
     """
+    def _taskFactory(self, seed, generations=1.0):
+        epoch = datetime.now().replace(
+            month=1, day=1, hour=0, minute=0, second=0, microsecond=0)
+        def day(n):
+            return epoch + timedelta(days=n)
+
+        def t(cls, adj):
+            return cls(
+                day(seed.beginning_of_season + adj),
+                seed, seed.bed_feet / generations)
+
+        return t
+
+
     def test_noTasksForNoFeet(self):
         """
         L{create_tasks} creates no tasks at all for a seed with C{bed_feet} set
@@ -773,28 +787,53 @@ class CreateTasksTests(TestCase):
 
 
     def test_tasksForDirectSeeding(self):
+        """
+        For a seed variety with C{greenhouse_days} set to C{0}, L{create_tasks}
+        creates L{BedPreparation}, L{DirectSeed}, and L{Harvest} tasks.
+        """
         crop = dummyCrop()
         crops = {'foo': crop}
         seed = dummySeed(crop, greenhouse_days=0)
         seeds = [seed]
         tasks = create_tasks(crops, seeds)
-        self.assertEqual(
-            [BedPreparation, DirectSeed, Harvest], map(type, tasks))
+
+        t = self._taskFactory(seed)
+        expected = [
+            t(BedPreparation, -14),
+            t(DirectSeed, 0),
+            t(Harvest, seed.maturity_days)]
+
+        self.assertEqual(expected, tasks)
 
 
     def test_tasksForFlatSeeding(self):
+        """
+        For a seed variety with C{greenhouse_days} set to a non-zero value,
+        L{create_tasks} creates L{BedPreparation}, L{SeedFlats}, L{Transplant},
+        and L{Harvest} tasks.
+        """
         crop = dummyCrop()
         crops = {'foo': crop}
         seed = dummySeed(crop)
         seeds = [seed]
         tasks = create_tasks(crops, seeds)
-        self.assertEqual(
-            [BedPreparation, SeedFlats, Transplant, Harvest], map(type, tasks))
+
+        t = self._taskFactory(seed)
+        expected = [
+            t(BedPreparation, -14),
+            t(SeedFlats, -seed.greenhouse_days),
+            t(Transplant, 0),
+            t(Harvest, seed.maturity_days - seed.greenhouse_days)]
+
+        self.assertEqual(expected, tasks)
 
 
     def test_severalFreshGenerations(self):
         """
-        L{create_tasks} creates a
+        For a variety with multiple succession plantings planned for fresh
+        eating, L{create_tasks} creates an instance of each normal cultivation
+        task for each succession.  Tasks for subsequent successions are delayed
+        the amount of time indicated by C{intergenerational_weeks}.
         """
         crop = dummyCrop()
         crops = {'foo': crop}
@@ -805,15 +844,7 @@ class CreateTasksTests(TestCase):
         tasks = create_tasks(crops, seeds)
         self.assertEqual(8, len(tasks))
 
-        epoch = datetime.now().replace(
-            month=1, day=1, hour=0, minute=0, second=0, microsecond=0)
-        def day(n):
-            return epoch + timedelta(days=n)
-
-        def t(cls, adj):
-            return cls(
-                day(seed.beginning_of_season + adj),
-                seed, seed.bed_feet / 2.0)
+        t = self._taskFactory(seed, generations=2.0)
 
         expected = [
             # Generation 1
