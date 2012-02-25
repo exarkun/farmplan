@@ -460,8 +460,8 @@ class Seed(record(
         'dollars_per_five_hundred dollars_per_thousand dollars_per_five_thousand dollars_per_quarter_oz '
         'dollars_per_half_oz dollars_per_oz dollars_per_eighth_lb dollars_per_quarter_lb '
         'dollars_per_half_lb dollars_per_lb row_foot_per_oz dollars_per_mini '
-        'seeds_per_mini row_foot_per_mini harvest_duration notes intergenerational_days '
-        'fresh_generations storage_generations', intergenerational_days=None, fresh_generations=None,
+        'seeds_per_mini row_foot_per_mini harvest_duration notes intergenerational_weeks '
+        'fresh_generations storage_generations', intergenerational_weeks=None, fresh_generations=None,
         storage_generations=None),
            ComparableRecord):
     """
@@ -562,7 +562,7 @@ class Seed(record(
 
     @ivar notes: Freeform text.
 
-    @ivar intergenerational_days: The number of days between successive
+    @ivar intergenerational_weeks: The number of weeks between successive
         plantings of this variety, or C{None} if no succession planting will be
         done.
 
@@ -685,6 +685,17 @@ class Seed(record(
         return float(self.crop.bed_feet) * my_proportion
 
 
+    @property
+    def intergenerational_days(self):
+        """
+        The number of days between successive generations of this variety of
+        this crop.  Simply computed based on C{intergenerational_weeks};
+        provided for convenience of day-based calculations.
+        """
+        if self.intergenerational_weeks is None:
+            return None
+        return self.intergenerational_weeks * 7
+
 
 def load_csv(data, known_columns, defaults, parsers, cls):
     headers = data.next()
@@ -793,7 +804,7 @@ def load_seeds(path, crops):
         "Notes": "notes",
         "Fresh Eating Generations": "fresh_generations",
         "Storage Generations": "storage_generations",
-        "time between generations": "intergenerational_days"}
+        "time between generations": "intergenerational_weeks"}
 
     defaults = defaultdict(lambda: None)
     defaults['parts_per_crop'] = 1
@@ -812,6 +823,9 @@ def load_seeds(path, crops):
     parsers["seeds_per_mini"] = int
     parsers["harvest_duration"] = int
     parsers["notes"] = str
+    parsers["intergenerational_weeks"] = int
+    parsers["fresh_generations"] = int
+    parsers["storage_generations"] = int
 
     data = reader(path.open())
     return load_csv(data, known_columns, defaults, parsers, Seed)
@@ -1019,31 +1033,95 @@ def create_tasks(crops, seeds):
         if seed.bed_feet == 0:
             continue
 
-        # Prep the bed before planting in it
-        tasks.append(BedPreparation(
-                epoch + timedelta(days=seed.beginning_of_season - 14), seed,
-                seed.bed_feet))
+        # if seed.variety == 'Patterson':
+        #     import pdb; pdb.set_trace()
 
-        if seed.greenhouse_days != 0:
-            # It starts in the greenhouse
-            greenhouse_day = timedelta(
-                days=seed.beginning_of_season - seed.greenhouse_days)
-            tasks.append(SeedFlats(
-                    epoch + greenhouse_day, seed, seed.bed_feet))
-            tasks.append(Transplant(
-                    epoch + timedelta(days=seed.beginning_of_season), seed,
-                    seed.bed_feet))
+        # Handle succession planting
+        if seed.fresh_generations is None and seed.storage_generations is None:
+            fresh_generations = 1
+            storage_generations = 0
         else:
-            tasks.append(DirectSeed(
-                    epoch + timedelta(days=seed.beginning_of_season), seed,
-                    seed.bed_feet))
+            fresh_generations = seed.fresh_generations
+            if fresh_generations is None:
+                fresh_generations = 0
+            storage_generations = seed.storage_generations
+            if storage_generations is None:
+                storage_generations = 0
 
-        harvest_day = timedelta(
-            days=seed.beginning_of_season + seed.maturity_days - seed.greenhouse_days)
-        tasks.append(Harvest(epoch + harvest_day, seed, seed.bed_feet))
+        intergenerational_days = seed.intergenerational_days
+        if intergenerational_days is None:
+            if fresh_generations > 1 or storage_generations > 1:
+                raise ValueError(
+                    "Cannot have multiple generations without defining "
+                    "intergenerational time.")
+            # Doesn't matter, just make it an integer
+            intergenerational_days = 0
+
+        generations = fresh_generations + storage_generations
+
+        # Fresh produce generations, pegged to the beginning of the season
+        for generation in range(fresh_generations):
+            generation_tasks = list(_create_planting_tasks(epoch, seed))
+            for t in generation_tasks:
+                t.when += timedelta(
+                    days=generation * intergenerational_days)
+                t.quantity /= generations
+            tasks.extend(generation_tasks)
+
+        # Storage produce generations, pegged to the end of the season
+        storage_epoch = epoch + _storage_offset(seed)
+        succession_offset = (storage_generations - 1) * intergenerational_days
+        storage_epoch -= timedelta(days=succession_offset)
+        for generation in range(storage_generations):
+            generation_tasks = list(_create_planting_tasks(storage_epoch, seed))
+            for t in generation_tasks:
+                t.when += timedelta(
+                    days=generation * intergenerational_days)
+                t.quantity /= generations
+            tasks.extend(generation_tasks)
 
     tasks.sort(key=lambda event: event.when)
     return tasks
+
+
+
+def _storage_offset(seed):
+    """
+    Compute the number of days between the first possible day of the season a
+    seed variety's first spring succession can be put outside and the last
+    possible day of the season that seed variety's first storage success can be
+    put outside.
+    """
+    last_harvest = seed.end_of_season
+    last_planting = last_harvest - seed.maturity_days
+    storage_offset = last_planting - seed.beginning_of_season
+    return timedelta(days=storage_offset)
+
+
+
+def _create_planting_tasks(epoch, seed):
+    # Prep the bed before planting in it
+    yield BedPreparation(
+        epoch + timedelta(days=seed.beginning_of_season - 14),
+        seed, seed.bed_feet)
+
+    if seed.greenhouse_days != 0:
+        # It starts in the greenhouse
+        greenhouse_day = timedelta(
+            days=seed.beginning_of_season - seed.greenhouse_days)
+        yield SeedFlats(
+            epoch + greenhouse_day, seed, seed.bed_feet)
+        yield Transplant(
+            epoch + timedelta(days=seed.beginning_of_season), seed,
+            seed.bed_feet)
+    else:
+        yield DirectSeed(
+            epoch + timedelta(days=seed.beginning_of_season), seed,
+            seed.bed_feet)
+
+    harvest_day = timedelta(
+        days=seed.beginning_of_season + seed.maturity_days - seed.greenhouse_days)
+    yield Harvest(epoch + harvest_day, seed, seed.bed_feet)
 
 
 
