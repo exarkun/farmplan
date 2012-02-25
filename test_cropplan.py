@@ -325,6 +325,28 @@ class CropTests(TestCase, ComparisonTestsMixin):
         self.assertRaises(ValueError, dummyCrop, yield_lbs_per_bed_foot=-1)
 
 
+    def test_freshAndStorageBedFeet(self):
+        """
+        The sum of L{Crop.fresh_bed_feet} and L{Crop.storage_bed_feet} equals
+        L{Crop.bed_feet} and the two values are in the same ratio as
+        L{Crop.fresh_yield} and L{Crop.storage_yield}.
+        """
+        crop = dummyCrop(
+            fresh_eating_lbs=2, fresh_eating_weeks=3,
+            storage_eating_lbs=5, storage_eating_weeks=7,
+            yield_lbs_per_bed_foot=0.5,
+            )
+
+        # Sanity check
+        fresh_feet = 2 * 3 / 0.5
+        storage_feet = 5 * 7 / 0.5
+        bed_feet = fresh_feet + storage_feet
+        self.assertEqual(bed_feet, crop.bed_feet)
+
+        self.assertEqual(fresh_feet, crop.fresh_bed_feet)
+        self.assertEqual(storage_feet, crop.storage_bed_feet)
+
+
 
 class SeedTests(TestCase, ComparisonTestsMixin):
     """

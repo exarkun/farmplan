@@ -387,8 +387,18 @@ class Crop(record(
 
 
     @property
+    def fresh_bed_feet(self):
+        return (self.bed_feet * self.fresh_yield / self.total_yield)
+
+
+    @property
     def storage_yield(self):
         return self.storage_eating_weeks * self.storage_eating_lbs
+
+
+    @property
+    def storage_bed_feet(self):
+        return (self.bed_feet * self.storage_yield / self.total_yield)
 
 
     @property
