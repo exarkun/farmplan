@@ -1043,9 +1043,6 @@ def create_tasks(crops, seeds):
         if seed.bed_feet == 0:
             continue
 
-        # if seed.variety == 'Patterson':
-        #     import pdb; pdb.set_trace()
-
         # Handle succession planting
         if seed.fresh_generations is None and seed.storage_generations is None:
             fresh_generations = 1
@@ -1140,7 +1137,7 @@ def schedule_tasks(tasks):
     # being done on any particular day.
 
     # The maximum number of hours of work to schedule per day
-    maxManHours = timedelta(hours=3)
+    maxManHours = timedelta(hours=5)
 
     # The maximum amount of time to waste at the end of a day (in other words,
     # the smallest piece of a larger task to break off and schedule at the end
