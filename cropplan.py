@@ -35,6 +35,8 @@ from dateutil.rrule import SU
 
 from vobject import iCalendar
 
+import ephem
+
 from twisted.python.log import msg
 from twisted.python.filepath import FilePath
 from twisted.python.usage import Options
@@ -498,6 +500,12 @@ class Seed(record(
 
     @ivar maturity_days: The number of days from planting or transplanting
         outdoors until the variety can be harvested.
+    @type maturity_days: C{int}
+
+    @ivar maturity_sunlight_hours: C{maturity_days} presented as a number of
+        sunlight hours instead of days.  Number of sunlight hours per day is
+        computed assuming day days from C{beginning_of_season}.
+    @type maturity_sunlight_hours: C{float}
 
     @ivar end_of_season: The last date at which this variety is viable for for
         harvest outdoors.  This is an integer giving a day of the year.
@@ -589,6 +597,67 @@ class Seed(record(
     def __init__(self, *args, **kwargs):
         super(Seed, self).__init__(*args, **kwargs)
         self.crop.varieties.append(self)
+
+
+    def _get_ephemerals(self):
+        """
+        Construct objects for computing day length.
+        """
+        location = ephem.Observer()
+        # Somewhere around Bangor
+        location.lat = '44.8011'
+        # Longitude doesn't really matter
+        location.long = '-68.7783'
+
+        sun = ephem.Sun()
+        return location, sun
+
+
+    @property
+    def maturity_sunlight_duration(self):
+        """
+        Compute the number of sunlight hours between C{self.beginning_of_season}
+        and a date falling C{self.maturity_days} later.  Assume 45 degrees
+        latitude.
+
+        @return: A L{datetime.timedelta} giving the amount of sunlight required
+            for this crop to mature.
+        """
+        location, sun = self._get_ephemerals()
+
+        epoch = datetime(
+            year=YEAR, month=1, day=1, hour=0, minute=0, second=0)
+        start = epoch + timedelta(days=self.beginning_of_season, hours=3)
+
+        daylight_hours = timedelta()
+        for i in range(self.maturity_days):
+            location.date = start + timedelta(days=i)
+            rising = location.next_rising(sun).datetime()
+            setting = location.next_setting(sun).datetime()
+            daylight_hours += setting - rising
+        return daylight_hours
+
+
+    def days_to_maturity_from(self, when):
+        """
+        Starting at C{when}, determine how many days must pass before crops have
+        received sunlight for C{self.maturity_sunlight_duration}, taking into
+        account the varying day lengths at different times of the year.
+        """
+        location, sun = self._get_ephemerals()
+        sunlight_hours = self.maturity_sunlight_duration
+
+        when = when.replace(hour=3)
+
+        days = 0
+        zero = timedelta()
+        while sunlight_hours > zero:
+            location.date = when + timedelta(days=days)
+            rising = location.next_rising(sun).datetime()
+            setting = location.next_setting(sun).datetime()
+            sunlight_hours -= setting - rising
+            days += 1
+        return days
 
 
     def _count_to_feet(self, count):
