@@ -20,8 +20,8 @@ TODO: Describe yield estimation
 TODO: Clean up extra text output on stdout
 """
 
-from csv import reader
-from sys import argv
+from csv import reader, writer
+from sys import argv, stdout
 from math import ceil
 from itertools import groupby
 from datetime import date, datetime, timedelta
@@ -131,6 +131,109 @@ def schedule_ical(schedule):
         vevent.add('summary').value = event.summarize()
     print cal.serialize()
 
+
+def _compute_weekly_schedule(schedule):
+    earliest = datetime(3000, 1, 1)
+    latest = datetime(2000, 1, 1)
+    eventsPerVariety = defaultdict(list)
+    for event in schedule:
+        eventsPerVariety[event.seed].append(event)
+        eventsPerVariety[event.seed].sort(key=lambda e: e.when)
+        earliest = min(earliest, event.when)
+        latest = max(latest, event.when)
+
+    earliest = datetime(earliest.year, earliest.month, earliest.day) - timedelta(
+        days=earliest.weekday())
+    latest = datetime(latest.year, latest.month, latest.day) + timedelta(
+        days=7 - latest.weekday())
+
+    eventsPerWeekPerVariety = defaultdict(list)
+
+    for i, variety in enumerate(sorted(eventsPerVariety)):
+        weeks = []
+
+        events = eventsPerVariety[variety]
+        week = earliest
+
+        while week <= latest:
+            weeks.append(week)
+            thisWeek = []
+            while events and events[0].when < week + timedelta(days=7):
+                thisWeek.append(events.pop(0))
+            eventsPerWeekPerVariety[variety].append(thisWeek)
+            week += timedelta(days=7)
+
+    return weeks, eventsPerWeekPerVariety
+
+
+def schedule_csv(schedule):
+    weeks, eventsPerWeekPerVariety = _compute_weekly_schedule(schedule)
+
+    w = writer(stdout)
+    w.writerow(['variety'] + list('%02d/%02d' % (w.month, w.day) for w in weeks))
+    for variety in sorted(eventsPerWeekPerVariety):
+        w.writerow(
+            [variety.variety] +
+            [' '.join(["%s%d'" % (SHORTENED[e.__class__], e.quantity) for e in thisWeek])
+             for thisWeek in eventsPerWeekPerVariety[variety]])
+
+
+def schedule_table(schedule):
+    """
+    Render the schedule as a table with time (in weeks) along the x axis and
+    crop (by variety) along the y axis.  For example::
+
+        (B)ed prep; (S)eed Flats; (D)irect seed; (T)ransplant; (H)arvest
+
+                 5/1     5/8        5/15  5/22  5/29  6/5  6/12  6/19
+
+        Bolero   B1      D1 B2      D2          H1    H2
+        Merlin           B1         B2          D1    D2   H1    H2
+        Sw. Pot                     B1          T1               H1
+    """
+    NAME_LENGTH = 16
+
+    def formatVariety(name):
+        parts = name.split()
+        lines = []
+        buf = ''
+        while parts:
+            if buf:
+                if len(buf) + 1 + len(parts[0]) > NAME_LENGTH:
+                    lines.append(buf.rjust(NAME_LENGTH))
+                    buf = ''
+                else:
+                    buf += ' ' + parts.pop(0)
+            else:
+                if len(parts[0]) > NAME_LENGTH:
+                    lines.append(parts[0][:NAME_LENGTH])
+                    parts[0] = parts[0][NAME_LENGTH:]
+                else:
+                    buf = parts.pop(0)
+        if buf:
+            lines.append(buf.rjust(NAME_LENGTH))
+        result = '\n'.join(lines)
+        return result
+
+    weeks, eventsPerWeekPerVariety = _compute_weekly_schedule(schedule)
+    print ' ' * NAME_LENGTH,
+    for week in weeks:
+        print '%02d/%02d' % (week.month, week.day),
+    print
+
+    for i, variety in enumerate(sorted(eventsPerWeekPerVariety)):
+        if i % 3 == 0:
+            sep = '~'
+        elif i % 3 == 1:
+            sep = '-'
+        elif i % 3 == 2:
+            sep = ' '
+
+        thisLine = []
+        for thisWeek in eventsPerWeekPerVariety[variety]:
+            thisLine.append(''.join([SHORTENED[e.__class__] for e in thisWeek]).ljust(5))
+
+        print formatVariety(variety.variety), ' '.join(thisLine).replace(' ', sep)
 
 
 def summarize_crops(crops):
@@ -285,7 +388,8 @@ class CropPlanOptions(Options):
     optParameters = [
         ('schedule', None, None,
          'Summarize the labor schedule (text or ical).',
-         make_coercer(dict(text=schedule_plaintext, ical=schedule_ical))),
+         make_coercer(dict(text=schedule_plaintext, ical=schedule_ical,
+                           table=schedule_table, csv=schedule_csv))),
         ('crops', None, None,
          'Summarize the crops being planted (text or graph).',
          make_coercer(dict(text=summarize_crops, graph=summarize_crops_graph))),
@@ -1301,6 +1405,17 @@ def summarize_yields(schedule):
                 variety=event.seed.variety,
                 crop=event.seed.crop.name,
                 when=event.when)
+
+
+
+SHORTENED = {
+    SeedFlats: 'S',
+    DirectSeed: 'D',
+    BedPreparation: 'B',
+    Transplant: 'T',
+    Weed: 'W',
+    Harvest: 'H',
+    }
 
 
 
