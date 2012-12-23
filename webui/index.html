@@ -1,0 +1,55 @@
+<!DOCTYPE HTML>
+<html>
+  <head>
+    <title>Annual Vegetable Crop Planner</title>
+    <link rel="stylesheet" href="../css/styles.css" />
+
+    <!-- JavaScript -->
+    <script src="jquery-1.8.3.js"></script>
+    <script src="underscore.js"></script>
+    <script src="backbone.js"></script>
+  </head>
+
+  <body>
+
+    <div id="header"><span class="title">Annual Vegetable Crop Planner</span></div>
+
+    <div id="sidebar"></div>
+
+    <div id="content">
+      <h2>Welcome to the Planner</h2>
+      <p>
+        This is a data view and entry application for planning annual vegetable production.
+      </p>
+    </div>
+
+    <!-- Templates -->
+    <script type="text/template" id="template-header">
+      <span class="title">Crop Planner</span>
+      <button class="new">New Crop</button>
+    </script>
+
+    <script type="text/template" id="template-crop-plan-item">
+      <a href='#crops/<%= id %>'><%= name %></a>
+    </script>
+
+    <script type="text/template" id="template-crop-details">
+      <div class="form-left-col">
+        <label>Id:</label>
+        <input type="text" id="cropId" name="id" value="<%= id %>" disabled />
+        <label>Name:</label>
+        <input type="text" id="name" name="name" value="<%= name %>" required/>
+        <button class="save">Save</button>
+        <button class="delete">Delete</button>
+      </div>
+      <div class="form-right-col">
+        <img height="300" src="../pics/<%= picture %>"/>
+        <label>Notes:</label>
+        <textarea id="description" name="description"><%= description %></textarea>
+      </div>
+    </script>
+
+    <script src="cropplan.js?v=2"></script>
+
+  </body>
+</html>
