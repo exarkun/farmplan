@@ -408,7 +408,7 @@ class SeedOrderTests(TestCase):
         """
         crop = dummyCrop()
         seed = self.dummySeed(crop)
-        self.assertRaises(MissingInformation, seed.order, 100)
+        self.assertIsInstance(seed.order(100), MissingInformation)
 
 
     def test_orderMinimumSufficient(self):
