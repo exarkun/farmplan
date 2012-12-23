@@ -821,7 +821,7 @@ class CreateTasksTests(TestCase):
         seeds = [seed]
         tasks = create_tasks(crops, seeds)
 
-        t = self._taskFactory(seed, bed_feet=seed.bed_feet)
+        t = self._taskFactory(seed)
         expected = [
             t(BedPreparation, -14),
             t(DirectSeed, 0),
@@ -949,7 +949,7 @@ class CreateTasksTests(TestCase):
             fresh_generations=1,
             storage_generations=1)
 
-        tasks = create_tasks(crops, seeds)
+        tasks = create_tasks(crops, [seed])
 
         expected = []
         self.assertEqual(expected, tasks)
