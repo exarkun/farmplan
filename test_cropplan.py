@@ -941,18 +941,44 @@ class CreateTasksTests(TestCase):
         Bed feet for fresh produce and storage produce are allocated in the same
         ratio as the yield ratio for those uses.
         """
-        crop = dummyCrop()
+        crop = dummyCrop(
+            fresh_eating_lbs=3, fresh_eating_weeks=1,
+            storage_eating_lbs=0, storage_eating_weeks=0,
+            yield_lbs_per_bed_foot=1)
         crops = {'foo': crop}
-        seed = dummySeed(
+        fuyu = dummySeed(
             crop,
+            variety='fuyu',
+            parts_per_crop=1,
             greenhouse_days=0,
             fresh_generations=1,
-            storage_generations=1)
+            storage_generations=0)
+        hachiya = dummySeed(
+            crop,
+            variety='hachiya',
+            parts_per_crop=2,
+            greenhouse_days=0,
+            fresh_generations=1,
+            storage_generations=0)
 
-        tasks = create_tasks(crops, [seed])
+        tasks = create_tasks(crops, [fuyu, hachiya])
 
-        expected = []
-        self.assertEqual(expected, tasks)
+        fuyu_tasks = [
+            task for task in tasks if task.seed.variety == fuyu.variety]
+        hachiya_tasks = [
+            task for task in tasks if task.seed.variety == hachiya.variety]
+
+        # Sanity check, we better have some tasks
+        self.assertEqual(3, len(fuyu_tasks))
+        self.assertEqual(3, len(hachiya_tasks))
+
+        # The bed feet on each task should be the same, since each task applies
+        # to the entire generation.  And the bed feet should be in proportion to
+        # the yield requirements.
+        for task in fuyu_tasks:
+            self.assertEqual(1, task.quantity)
+        for task in hachiya_tasks:
+            self.assertEqual(2, task.quantity)
 
 
 
