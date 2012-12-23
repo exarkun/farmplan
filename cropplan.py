@@ -20,6 +20,7 @@ TODO: Describe yield estimation
 TODO: Clean up extra text output on stdout
 """
 
+from uuid import uuid4
 from csv import reader, writer
 from sys import argv, stdout
 from math import ceil
@@ -125,6 +126,12 @@ def schedule_ical(schedule):
     for event in schedule:
         when = event.when.replace(tzinfo=tz)
         vevent = cal.add('vevent')
+
+        # Generate our own event UID, because vobject's UIDs are not very unique.
+        # XXX Would be nice to generate this with a stable value based on the
+        # inputs, so that re-generating the output with only minor changes would
+        # preserve the majority of the event UIDs.
+        vevent.add('uid').value = uuid4()
         vevent.add('dtstart').value = when
         vevent.add('dtend').value = when + event.duration
 
@@ -1304,13 +1311,13 @@ def _create_planting_tasks(epoch, seed):
     yield Harvest(epoch + harvest_day, seed, seed.bed_feet)
 
 
-
-def schedule_tasks(tasks):
+def schedule_tasks(tasks, maxManHours=timedelta(hours=5)):
+    """
+    @param maxManHours: The maximum number of hours of work to schedule per day
+    @type maxManHours: L{datetime.timedelta}
+    """
     # Slightly less naive: now spread things out, if there is too much work
     # being done on any particular day.
-
-    # The maximum number of hours of work to schedule per day
-    maxManHours = timedelta(hours=5)
 
     # The maximum amount of time to waste at the end of a day (in other words,
     # the smallest piece of a larger task to break off and schedule at the end

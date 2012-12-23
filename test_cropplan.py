@@ -325,28 +325,6 @@ class CropTests(TestCase, ComparisonTestsMixin):
         self.assertRaises(ValueError, dummyCrop, yield_lbs_per_bed_foot=-1)
 
 
-    def test_freshAndStorageBedFeet(self):
-        """
-        The sum of L{Crop.fresh_bed_feet} and L{Crop.storage_bed_feet} equals
-        L{Crop.bed_feet} and the two values are in the same ratio as
-        L{Crop.fresh_yield} and L{Crop.storage_yield}.
-        """
-        crop = dummyCrop(
-            fresh_eating_lbs=2, fresh_eating_weeks=3,
-            storage_eating_lbs=5, storage_eating_weeks=7,
-            yield_lbs_per_bed_foot=0.5,
-            )
-
-        # Sanity check
-        fresh_feet = 2 * 3 / 0.5
-        storage_feet = 5 * 7 / 0.5
-        bed_feet = fresh_feet + storage_feet
-        self.assertEqual(bed_feet, crop.bed_feet)
-
-        self.assertEqual(fresh_feet, crop.fresh_bed_feet)
-        self.assertEqual(storage_feet, crop.storage_bed_feet)
-
-
 
 class SeedTests(TestCase, ComparisonTestsMixin):
     """
@@ -376,6 +354,28 @@ class SeedTests(TestCase, ComparisonTestsMixin):
 
         seed = dummySeed(self.crop)
         self.assertEqual(0, seed.bed_feet)
+
+
+    def test_freshAndStorageBedFeet(self):
+        """
+        The sum of L{Seed.fresh_bed_feet} and L{Seed.storage_bed_feet} equals
+        L{Seed.bed_feet} and the two values are in the same ratio as
+        L{Seed.fresh_yield} and L{Seed.storage_yield}.
+        """
+        crop = dummyCrop(
+            fresh_eating_lbs=2, fresh_eating_weeks=3,
+            storage_eating_lbs=5, storage_eating_weeks=7,
+            yield_lbs_per_bed_foot=0.5,
+            )
+
+        # Sanity check
+        fresh_feet = 2 * 3 / 0.5
+        storage_feet = 5 * 7 / 0.5
+        bed_feet = fresh_feet + storage_feet
+        self.assertEqual(bed_feet, crop.bed_feet)
+
+        self.assertEqual(fresh_feet, crop.fresh_bed_feet)
+        self.assertEqual(storage_feet, crop.storage_bed_feet)
 
 
 
@@ -821,7 +821,7 @@ class CreateTasksTests(TestCase):
         seeds = [seed]
         tasks = create_tasks(crops, seeds)
 
-        t = self._taskFactory(seed)
+        t = self._taskFactory(seed, bed_feet=seed.bed_feet)
         expected = [
             t(BedPreparation, -14),
             t(DirectSeed, 0),
@@ -936,6 +936,25 @@ class CreateTasksTests(TestCase):
             sorted(expected, key=lambda task: task.when), tasks)
 
 
+    def test_bedFeetAllocation(self):
+        """
+        Bed feet for fresh produce and storage produce are allocated in the same
+        ratio as the yield ratio for those uses.
+        """
+        crop = dummyCrop()
+        crops = {'foo': crop}
+        seed = dummySeed(
+            crop,
+            greenhouse_days=0,
+            fresh_generations=1,
+            storage_generations=1)
+
+        tasks = create_tasks(crops, seeds)
+
+        expected = []
+        self.assertEqual(expected, tasks)
+
+
 
 class ScheduleTasksTests(TestCase):
     """
@@ -988,7 +1007,7 @@ class ScheduleTasksTests(TestCase):
         tasks = [
             SeedFlats(datetime(2012, 5, 1), seedA, 90),
             SeedFlats(datetime(2012, 5, 1), seedB, 90)]
-        schedule = schedule_tasks(tasks)
+        schedule = schedule_tasks(tasks, maxManHours=timedelta(hours=3))
         self.assertEqual(
             [SeedFlats(datetime(2012, 5, 1, 8, 0, 0), seedA, 90),
              SeedFlats(datetime(2012, 5, 2, 8, 0, 0), seedB, 90)],
@@ -1004,7 +1023,7 @@ class ScheduleTasksTests(TestCase):
         crop = dummyCrop()
         seed = dummySeed(crop)
         tasks = [SeedFlats(datetime(2012, 5, 1), seed, 170)]
-        schedule = schedule_tasks(tasks)
+        schedule = schedule_tasks(tasks, maxManHours=timedelta(hours=3))
         self.assertEqual(
             [SeedFlats(datetime(2012, 5, 1, 8, 0, 0), seed, 90),
              SeedFlats(datetime(2012, 5, 2, 8, 0, 0), seed, 80)],
@@ -1024,7 +1043,7 @@ class ScheduleTasksTests(TestCase):
         seedB = dummySeed(crop)
         tasks = [SeedFlats(datetime(2012, 5, 1), seedA, 60),
                  SeedFlats(datetime(2012, 5, 1), seedB, 65)]
-        schedule = schedule_tasks(tasks)
+        schedule = schedule_tasks(tasks, maxManHours=timedelta(hours=3))
         self.assertEqual(
             [SeedFlats(datetime(2012, 5, 1, 8, 0, 0), seedA, 60),
              SeedFlats(datetime(2012, 5, 1, 10, 0, 0), seedB, 30),
