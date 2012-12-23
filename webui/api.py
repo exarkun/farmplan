@@ -49,6 +49,7 @@ class SingleCrop(Resource):
 
     def render_PUT(self, request):
         attributes = json.loads(request.content.read())
+        del attributes['id']
         crop = self.store.getItemByID(self.cropIdentifier)
         for k, v in attributes.iteritems():
             setattr(crop, k, v)
