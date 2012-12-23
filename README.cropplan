@@ -1,0 +1,10 @@
+Dependencies
+============
+
+Python 2.7 (<http://www.python.org/>)
+zope.interface
+pytz
+dateutil
+vobject
+PyEphem
+Divmod Epsilon
