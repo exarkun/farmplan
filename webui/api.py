@@ -35,7 +35,7 @@ class CropCollection(Resource):
 
     def render_POST(self, request):
         attributes = json.loads(request.content.read())
-        del attributes['id']
+        del attributes[b"id"]
         crop = Crop(store=self.store, **attributes)
         return json.dumps(viewify(crop))
 
@@ -49,11 +49,17 @@ class SingleCrop(Resource):
 
     def render_PUT(self, request):
         attributes = json.loads(request.content.read())
-        del attributes['id']
+        del attributes[b"id"]
         crop = self.store.getItemByID(self.cropIdentifier)
         for k, v in attributes.iteritems():
             setattr(crop, k, v)
         return json.dumps(viewify(crop))
+
+
+    def render_DELETE(self, request):
+        crop = self.store.getItemByID(self.cropIdentifier)
+        crop.deleteFromStore()
+        return b""
 
 
 def api(path):
