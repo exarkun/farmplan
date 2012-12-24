@@ -1,5 +1,8 @@
 jQuery.noConflict();
 jQuery(document).ready(function() {
+    /* Get Underscore.js to give up the global name _ */
+    var underscore = _.noConflict();
+
     window.Crop = Backbone.Model.extend({
         urlRoot: "../api/crops",
         defaults: {
@@ -29,8 +32,7 @@ jQuery(document).ready(function() {
         },
 
         render: function renderCropPlanView() {
-            /* XXX _? */
-            _.each(this.model.models, function renderOneCrop(crop) {
+            underscore.each(this.model.models, function renderOneCrop(crop) {
                 jQuery(this.el).append(new CropPlanItemView({model: crop}).render().el);
             }, this);
             return this;
@@ -38,8 +40,7 @@ jQuery(document).ready(function() {
 
     var t = jQuery("#template-crop-plan-item");
     var h = t.html();
-    /* XXX _? */
-    var tt = _.template(h);
+    var tt = underscore.template(h);
 
     window.CropPlanItemView = Backbone.View.extend({
         tagName: "li",
@@ -61,8 +62,7 @@ jQuery(document).ready(function() {
         }});
 
     window.CropView = Backbone.View.extend({
-        /* XXX _? */
-        template: _.template(jQuery("#template-crop-details").html()),
+        template: underscore.template(jQuery("#template-crop-details").html()),
 
         initialize: function initializeCropView () {
             this.model.bind("change", this.render, this);
@@ -113,7 +113,7 @@ jQuery(document).ready(function() {
 
 
     window.HeaderView = Backbone.View.extend({
-        template: _.template(jQuery('#template-header').html()),
+        template: underscore.template(jQuery('#template-header').html()),
 
         initialize: function initializeHeader() {
             this.render();
