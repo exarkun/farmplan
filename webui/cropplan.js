@@ -1,5 +1,5 @@
 jQuery.noConflict();
-jQuery.ready(function() {
+jQuery(document).ready(function() {
     window.Crop = Backbone.Model.extend({
         urlRoot: "../api/crops",
         defaults: {
