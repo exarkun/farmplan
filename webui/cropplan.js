@@ -20,11 +20,11 @@ jQuery(document).ready(function() {
             row_feet_per_oz_seed: "",
             harvest_weeks: ""}});
 
-    window.CropPlan = Backbone.Collection.extend({
+    var CropPlan = Backbone.Collection.extend({
         model: Crop,
         url: "../api/crops"});
 
-    window.CropPlanView = Backbone.View.extend({
+    var CropPlanView = Backbone.View.extend({
         tagName: "ul",
 
         initialize: function initialize() {
@@ -42,7 +42,7 @@ jQuery(document).ready(function() {
             return this;
         }});
 
-    window.CropPlanItemView = Backbone.View.extend({
+    var CropPlanItemView = Backbone.View.extend({
         tagName: "li",
         template: template("#template-crop-plan-item"),
 
@@ -61,7 +61,7 @@ jQuery(document).ready(function() {
             jQuery(this.el).remove();
         }});
 
-    window.CropView = Backbone.View.extend({
+    var CropView = Backbone.View.extend({
         template: template("#template-crop-details"),
 
         initialize: function initializeCropView () {
@@ -112,7 +112,7 @@ jQuery(document).ready(function() {
         }});
 
 
-    window.HeaderView = Backbone.View.extend({
+    var HeaderView = Backbone.View.extend({
         template: underscore.template(jQuery('#template-header').html()),
 
         initialize: function initializeHeader() {
