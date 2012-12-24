@@ -7,7 +7,7 @@ jQuery(document).ready(function() {
         return underscore.template(jQuery(id).html());
     }
 
-    window.Crop = Backbone.Model.extend({
+    var Crop = Backbone.Model.extend({
         urlRoot: "../api/crops",
         defaults: {
             id: null,
@@ -21,7 +21,7 @@ jQuery(document).ready(function() {
             harvest_weeks: ""}});
 
     window.CropPlan = Backbone.Collection.extend({
-        model: window.Crop,
+        model: Crop,
         url: "../api/crops"});
 
     window.CropPlanView = Backbone.View.extend({
