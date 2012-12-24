@@ -3,6 +3,10 @@ jQuery(document).ready(function() {
     /* Get Underscore.js to give up the global name _ */
     var underscore = _.noConflict();
 
+    function template(id) {
+        return underscore.template(jQuery(id).html());
+    }
+
     window.Crop = Backbone.Model.extend({
         urlRoot: "../api/crops",
         defaults: {
@@ -38,13 +42,9 @@ jQuery(document).ready(function() {
             return this;
         }});
 
-    var t = jQuery("#template-crop-plan-item");
-    var h = t.html();
-    var tt = underscore.template(h);
-
     window.CropPlanItemView = Backbone.View.extend({
         tagName: "li",
-        template: tt,
+        template: template("#template-crop-plan-item"),
 
         initialize: function initializeCropPlanItemView() {
             this.model.bind("change", this.render, this);
@@ -62,7 +62,7 @@ jQuery(document).ready(function() {
         }});
 
     window.CropView = Backbone.View.extend({
-        template: underscore.template(jQuery("#template-crop-details").html()),
+        template: template("#template-crop-details"),
 
         initialize: function initializeCropView () {
             this.model.bind("change", this.render, this);
