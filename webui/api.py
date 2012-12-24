@@ -1,15 +1,38 @@
 from __future__ import unicode_literals
 
 import json
+from decimal import Decimal
 
 from twisted.web.resource import Resource
 
 from axiom.store import Store
+from axiom.attributes import text, integer, point2decimal
 
 from db import Crop
 
+def identity(obj):
+    return obj
+
+_parser = {
+    text: identity,
+    integer: int,
+    point2decimal: Decimal,
+    }
+
+
+def _parse(itemType, attributes):
+    for name, serialized in attributes.iteritems():
+        if name == b"id":
+            continue
+        structured = _parser[type(getattr(itemType, name))](serialized)
+        yield name, structured
+
+
 def viewify(crop):
-    return dict(name=crop.name, id=crop.storeID, picture=None, description=crop.description)
+    result = dict(crop.persistentValues())
+    result[b"yield_lbs_per_bed_foot"] = str(result[b"yield_lbs_per_bed_foot"])
+    result[b"id"] = crop.storeID
+    return result
 
 
 class CropCollection(Resource):
@@ -34,9 +57,8 @@ class CropCollection(Resource):
 
 
     def render_POST(self, request):
-        attributes = json.loads(request.content.read())
-        del attributes[b"id"]
-        crop = Crop(store=self.store, **attributes)
+        attributes = _parse(Crop, json.loads(request.content.read()))
+        crop = Crop(store=self.store, **dict(attributes))
         return json.dumps(viewify(crop))
 
 
@@ -48,11 +70,9 @@ class SingleCrop(Resource):
 
 
     def render_PUT(self, request):
-        attributes = json.loads(request.content.read())
-        del attributes[b"id"]
         crop = self.store.getItemByID(self.cropIdentifier)
-        for k, v in attributes.iteritems():
-            setattr(crop, k, v)
+        for name, value in _parse(Crop, json.loads(request.content.read())):
+            setattr(crop, name, value)
         return json.dumps(viewify(crop))
 
 

@@ -6,7 +6,12 @@ window.Crop = Backbone.Model.extend({
         id: null,
         name: "",
         description: "",
-        picture: ""}});
+        picture: "",
+        yield_lbs_per_bed_foot: "",
+        rows_per_bed: "",
+        in_row_spacing: "",
+        row_feet_per_oz_seed: "",
+        harvest_weeks: ""}});
 
 window.CropPlan = Backbone.Collection.extend({
     model: window.Crop,
@@ -74,10 +79,15 @@ window.CropView = Backbone.View.extend({
     },
 
     saveCrop: function saveCrop() {
-        this.model.set({
-            name: jQuery('#name').val(),
-            description: jQuery('#description').val()
-        });
+        var attributes = {};
+        for (var field in this.model.defaults) {
+            if (field == "id") {
+                continue;
+            }
+            attributes[field] = jQuery("#" + field).val();
+        }
+        this.model.set(attributes);
+
         if (this.model.isNew()) {
             app.cropPlan.create(this.model);
         } else {

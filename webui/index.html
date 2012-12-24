@@ -35,10 +35,28 @@
 
     <script type="text/template" id="template-crop-details">
       <div class="form-left-col">
+
         <label>Id:</label>
         <input type="text" id="cropId" name="id" value="<%= id %>" disabled />
+
         <label>Name:</label>
         <input type="text" id="name" name="name" value="<%= name %>" required/>
+
+        <label>Yield (lbs/bed foot):</label>
+        <input type="text" id="yield_lbs_per_bed_foot" name="yield_lbs_per_bed_foot" value="<%= yield_lbs_per_bed_foot %>" required/>
+
+        <label>Rows Per Bed:</label>
+        <input type="text" id="rows_per_bed" name="rows_per_bed" value="<%= rows_per_bed %>" required/>
+
+        <label>In-Row Spacing (inches):</label>
+        <input type="text" id="in_row_spacing" name="in_row_spacing" value="<%= in_row_spacing %>" required/>
+
+        <label>Row Feet Per Oz Seed:</label>
+        <input type="text" id="row_feet_per_oz_seed" name="row_feet_per_oz_seed" value="<%= row_feet_per_oz_seed %>" required/>
+
+        <label>Harvest Weeks:</label>
+        <input type="text" id="harvest_weeks" name="harvest_weeks" value="<%= harvest_weeks %>" required/>
+
         <button class="save">Save</button>
         <button class="delete">Delete</button>
       </div>
