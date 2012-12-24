@@ -16,6 +16,7 @@ window.CropPlanView = Backbone.View.extend({
     tagName: "ul",
 
     initialize: function initialize() {
+        var self = this;
         this.model.bind("reset", this.render, this);
         this.model.bind("add", function addCrop(crop) {
             jQuery(self.el).append(new CropPlanItemView({model: crop}).render().el);
