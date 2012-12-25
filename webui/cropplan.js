@@ -86,12 +86,28 @@ jQuery(document).ready(function() {
                 }
                 attributes[field] = jQuery("#" + field).val();
             }
+            /* TODO Check for success or failure on this - and on failure,
+             * revert view changes? */
             this.model.set(attributes);
 
+            /* Let the user know some network operation is happening */
+            var status = jQuery("#status-communicating");
+            status.css("display", "block");
+
+            var options = {
+                wait: true,
+                success: function() {
+                    status.css("display", "none");
+                },
+                error: function(model, xhr, options) {
+                    status.css("display", "none");
+                    alert("Problem synchronizing with server; values not saved.");
+                }};
+
             if (this.model.isNew()) {
-                app.cropPlan.create(this.model, {wait: true});
+                app.cropPlan.create(this.model, options);
             } else {
-                this.model.save(null, null, {wait: true});
+                this.model.save(null, null, options);
             }
             return false;
         },

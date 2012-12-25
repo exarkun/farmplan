@@ -35,8 +35,11 @@
     </script>
 
     <script type="text/template" id="template-crop-details">
-      <div class="form-left-col">
+      <div style="display: none" id="status-communicating">
+        Synchronizing with server...
+      </div>
 
+      <div class="form-left-col">
         <label>Id:</label>
         <input type="text" id="cropId" name="id" value="<%= id %>" disabled />
 
