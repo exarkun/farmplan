@@ -160,6 +160,7 @@ jQuery(document).ready(function() {
             }
             app.cropView = new CropView({model: new Crop()});
             jQuery('#content').html(app.cropView.render().el);
+            Backbone.history.navigate("/crops/new", {trigger: false, replace: false});
             return false;
         }});
 
@@ -167,10 +168,17 @@ jQuery(document).ready(function() {
     var AppRouter = Backbone.Router.extend({
         routes: {
             "": "list",
+            "crops/new": "newCrop",
             "crops/:id": "crop-details"},
 
         initialize: function initializeRouter() {
             jQuery('#header').html(new HeaderView().render().el);
+        },
+
+        newCrop: function newCrop() {
+            this.list();
+            this.cropView = new CropView({model: new Crop()});
+            jQuery('#content').html(this.cropView.render().el);
         },
 
         _getCollection: function _getCollection(options) {
