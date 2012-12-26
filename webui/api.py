@@ -62,6 +62,7 @@ class CropCollection(Resource):
         return json.dumps(viewify(crop))
 
 
+
 class SingleCrop(Resource):
     def __init__(self, store, cropIdentifier):
         Resource.__init__(self)

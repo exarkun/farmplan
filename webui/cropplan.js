@@ -73,9 +73,24 @@ jQuery(document).ready(function() {
             return this;
         },
 
-        events:{
+        events: {
             "click .save": "saveCrop",
             "click .delete": "deleteCrop"
+        },
+
+        _syncOptions: function _syncOptions() {
+            var status = jQuery("#status-communicating");
+            var options = {
+                wait: true,
+                status: status,
+                success: function() {
+                    status.css("display", "none");
+                },
+                error: function(model, xhr, options) {
+                    status.css("display", "none");
+                    alert("Problem synchronizing with server; values not saved.");
+                }};
+            return options;
         },
 
         saveCrop: function saveCrop() {
@@ -91,18 +106,8 @@ jQuery(document).ready(function() {
             this.model.set(attributes);
 
             /* Let the user know some network operation is happening */
-            var status = jQuery("#status-communicating");
-            status.css("display", "block");
-
-            var options = {
-                wait: true,
-                success: function() {
-                    status.css("display", "none");
-                },
-                error: function(model, xhr, options) {
-                    status.css("display", "none");
-                    alert("Problem synchronizing with server; values not saved.");
-                }};
+            var options = self._syncOptions();
+            options.status.css("display", "block");
 
             if (this.model.isNew()) {
                 app.cropPlan.create(this.model, options);
@@ -113,12 +118,17 @@ jQuery(document).ready(function() {
         },
 
         deleteCrop: function deleteCrop() {
-            this.model.destroy({
-                success: function deleteSuccess () {
-                    alert('Crop deleted');
-                    window.history.back();
-                }
-            });
+            var options = self._syncOptions();
+            var success = options.success;
+
+            options.success = function deleteSuccess() {
+                success();
+                alert('Crop deleted');
+                window.history.back();
+            };
+
+            options.status.css("display", "block");
+            this.model.destroy(options);
             return false;
         },
 
@@ -163,17 +173,46 @@ jQuery(document).ready(function() {
             jQuery('#header').html(new HeaderView().render().el);
         },
 
+        _getCollection: function _getCollection(options) {
+            if (this.cropPlan) {
+                options.success();
+            } else {
+                var self = this;
+                var cropPlan = new CropPlan();
+                var status = jQuery("#status-loading");
+                status.css("display", "block");
+
+                // XXX Backbone documentation says do not use fetch for on-page-load data.
+                cropPlan.fetch({
+                    success: function() {
+                        status.css("display", "none");
+                        self.cropPlan = cropPlan;
+                        self.cropPlanView = new CropPlanView({model: cropPlan});
+                        jQuery("#sidebar").html(self.cropPlanView.render().el);
+                        options.success();
+                    },
+                    error: function() {
+                        status.css("display", "none");
+                        alert("Failed to fetch crop plan.");
+                        options.error();
+                    }});
+            }
+        },
+
         list: function list() {
-            this.cropPlan = new CropPlan();
-            this.cropPlanView = new CropPlanView({model: this.cropPlan});
-            this.cropPlan.fetch();
-            jQuery('#sidebar').html(this.cropPlanView.render().el);
+            this._getCollection();
         },
 
         "crop-details": function crop_details(id) {
-            this.crop = this.cropPlan.get(id);
-            this.cropView = new CropView({model: this.crop});
-            jQuery('#content').html(this.cropView.render().el);
+            var self = this;
+            this._getCollection({
+                success: function() {
+                    self.crop = self.cropPlan.get(id);
+                    self.cropView = new CropView({model: self.crop});
+                    jQuery('#content').html(self.cropView.render().el);
+                },
+                error: function() {
+                }});
         }});
 
     var app = new AppRouter();
